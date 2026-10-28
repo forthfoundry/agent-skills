@@ -54,6 +54,13 @@ grounding, and fan-out.
    ambiguity*), which also lands in `DRAFT` and is never transitioned. It is
    never a copy of work found in the sources — tickets, subtasks and checklists
    are not imported as tasks.
+   - **Publishing is not a transition.** `publishDocument` + `confirmPublish`
+     records a new *version* and leaves the status at `DRAFT`, so this rule
+     never stops you publishing. Every requirement **must** be published once
+     its criteria are written: criteria live in the requirement's draft until
+     it is, every criteria read answers the published set, and a design can
+     only cover a published criterion. An unpublished requirement reads as
+     having no criteria at all.
 
 ## The shape of an import
 
@@ -304,8 +311,11 @@ Phases 2 and 3 for **one** feature, done in this conversation rather than by a
 sub-agent.
 
 - **Input:** one feature reference.
-- **Output:** that feature's requirements and their acceptance criteria. Publish
-  each requirement so its criteria reach the published set.
+- **Output:** that feature's requirements and their acceptance criteria, with
+  **every requirement published** (`publishDocument` then `confirmPublish`)
+  after its criteria are written. The unit is not finished until it is: an
+  unpublished requirement shows no criteria, and the designs stage cannot cover
+  them. Publishing leaves the status at `DRAFT` (see *The two rules*).
 
 Follow *Phases 2 & 3* for that feature alone, as the sub-agent brief describes
 it, without the report-back to an orchestrator. Raise any cross-feature question
@@ -318,9 +328,13 @@ and build on it rather than drafting a second.
 
 Closing contract:
 
+- Before ending, confirm `listAcceptanceCriteria` returns a non-empty set for
+  every requirement you drafted. An empty set on a requirement whose draft
+  (`readDocument`) holds criteria means it was never published: publish it.
 - End the unit with a summary of what was drafted, and of which sources were skipped and why.
 - Never start the next stage unprompted.
 - Read the workspace before writing, so a re-sent or continued unit creates nothing twice.
+  A continued unit also publishes any requirement an earlier turn left unpublished.
 
 ### Designs stage
 
@@ -422,6 +436,8 @@ with one search. The body carries:
   *Follow-up tasks for unresolved ambiguity*).
 - **Everything DRAFT, no transitions.** Reiterated because it's easy to slip:
   `create*` is enough; never call `transitionEntityStatuses` during an import.
+  This does not mean "don't publish" — every requirement is published once its
+  criteria are written, and stays `DRAFT` when it is.
 - **MCP surface** (see `spexd-authoring` for the full editing/publishing model):
   entities are created with `create*`; edited by reading with `readDocument`
   and sending **every** change for that document as one `editDocument` call
@@ -484,7 +500,8 @@ with one search. The body carries:
    repositories. Capture every `featureRef`.
 3. **Fan out** one sub-agent per feature (concurrently). Each: derive grounded
    **requirements**, linked to their repositories, then judgement-based
-   **acceptance criteria**, created under its feature.
+   **acceptance criteria**, created under its feature, then publishes each
+   requirement so its criteria reach the published set.
 4. **Reconcile** the sub-agents' reports; place any cross-feature rules; collect
    the architectural-seam notes. Reconcile the follow-ups too: where sub-agents
    reported the same cross-feature question, raise it as **one** task, placed by
@@ -498,7 +515,9 @@ with one search. The body carries:
    `listDescendants(FEAT-n, { maxDepth: -1 })` per feature — every requirement
    and design beneath it, each carrying its `parent` (acceptance criteria are
    not a chain level, so list them per requirement with `listAcceptanceCriteria`,
-   which also shows each criterion's `fulfilledBy` coverage). Confirm every
+   which also shows each criterion's `fulfilledBy` coverage — an empty list on
+   a requirement whose draft holds criteria means it was never published, so
+   publish it). Confirm every
    entity is `DRAFT`, nothing was transitioned, no implementation detail leaked
    above Design, and nothing was invented beyond the AC exception. The only
    `TASK`s beneath any feature are follow-ups — each `DRAFT`, each under the
