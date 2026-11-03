@@ -459,7 +459,7 @@ say so on the **first line of the body**, before everything else, so ordering
 is visible without reading the task:
 
 ```markdown
-**Depends on:** [TASK-14](https://www.spexd.com/e/TASK-14), [TASK-15](https://www.spexd.com/e/TASK-15)
+**Depends on:** [TASK-14](https://acme.spexd.com/e/TASK-14), [TASK-15](https://acme.spexd.com/e/TASK-15)
 ```
 
 Linked references, never bare. Omit the line entirely when nothing blocks the
@@ -551,7 +551,7 @@ the task exists to commission is not.
   not as plain text:
 
   ```markdown
-  satisfies [DES-9](https://www.spexd.com/e/DES-9)
+  satisfies [DES-9](https://acme.spexd.com/e/DES-9)
   ```
 
   **An entity's address is its bare reference under `/e/`**, not a positional
@@ -560,13 +560,16 @@ the task exists to commission is not.
   (`/feature/FEAT-3/REQ-7/DES-9`) still redirects, but don't write new links in
   it.
 
-  `getEntity` / `getEntities`, `listFeatures`, `listDescendants`,
-  `searchEntities`, `listInbox`, `resolveEntityReferences` and
-  `resolveGitHubBranch` all return `viewUrl` alongside the reference — take the
-  URL from the response rather than composing one yourself, and if you don't
-  have it, read the entity rather than guessing. Two tools don't return one:
-  `readDocument` (keep the link from whichever tool surfaced the entity) and
-  `getOutstandingWorkForEntity`, whose items are addressed by their own
+  **The host is your organization's own subdomain** (`acme.spexd.com` in these
+  examples), so never compose one: a link on `spexd.com` or `www.spexd.com`
+  opens no organization.
+
+  `getEntity` / `getEntities`, `readDocument`, `listFeatures`,
+  `listDescendants`, `searchEntities`, `listInbox`, `resolveEntityReferences`
+  and `resolveGitHubBranch` all return `viewUrl` alongside the reference — take
+  the URL from the response rather than composing one yourself, and if you
+  don't have it, read the entity rather than guessing. One tool doesn't return
+  one: `getOutstandingWorkForEntity`, whose items are addressed by their own
   `reference` like anything else. Those items also carry an optional `path`
   array of the ancestor chain; it is dropped when an ancestor link is broken,
   so read its absence as "this row's chain is broken" rather than as the
@@ -575,7 +578,7 @@ the task exists to commission is not.
   An acceptance criterion is the one exception: its reference is numbered
   within its requirement, so `AC-3` is not addressable on its own and is
   linked as a query on its requirement's URL —
-  `[AC-3](https://www.spexd.com/e/REQ-4?ac=AC-3)`.
+  `[AC-3](https://acme.spexd.com/e/REQ-4?ac=AC-3)`.
 
   A bare `AC-3` or `DES-9` makes the reader go and find it. Link it.
 - **For features and requirements**, a useful body shape is: `## Overview`

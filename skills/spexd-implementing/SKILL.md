@@ -95,16 +95,16 @@ code, lead with:
 
 1. **A link to the entity** — the `viewUrl` from the tool response, as a
    markdown link on the reference, e.g.
-   `[TASK-12](https://www.spexd.com/e/TASK-12)`.
+   `[TASK-12](https://acme.spexd.com/e/TASK-12)`.
 2. **Its title**, verbatim.
 3. **A concise summary** — two or three sentences on what it covers and what
    "done" means, in your own words rather than a paste of the body.
 
 ```markdown
-**[TASK-12](https://www.spexd.com/e/TASK-12) — Implement `POST /api/rides`**
+**[TASK-12](https://acme.spexd.com/e/TASK-12) — Implement `POST /api/rides`**
 
 Creates the ride-request endpoint and its state machine transitions per
-[DES-9](https://www.spexd.com/e/DES-9), validating rider location and payment
+[DES-9](https://acme.spexd.com/e/DES-9), validating rider location and payment
 method before persisting. Done when the endpoint accepts a valid request,
 rejects the three failure cases in AC-4/AC-5, and the state machine is covered
 by tests.
@@ -115,12 +115,13 @@ org-unique, so `/e/TASK-12` locates it and the navigator derives the ancestors
 itself. The older positional form (`/feature/FEAT-3/REQ-7/DES-9/TASK-12`) still
 redirects, but don't write new links in it.
 
-`viewUrl` comes back from `getEntity` / `getEntities`, `listFeatures`,
-`listDescendants`, `searchEntities`, `listInbox`, `resolveEntityReferences` and
-`resolveGitHubBranch` — take it from the response rather than composing a URL
-yourself. Two tools don't return one: `readDocument` (so keep the link from
-whichever tool surfaced the entity), and `getOutstandingWorkForEntity`, whose
-items are addressed by their own `reference` like anything else; the optional
+`viewUrl` comes back from `getEntity` / `getEntities`, `readDocument`,
+`listFeatures`, `listDescendants`, `searchEntities`, `listInbox`,
+`resolveEntityReferences` and `resolveGitHubBranch` — take it from the response
+rather than composing a URL yourself. Its host is your organization's own
+subdomain (`acme.spexd.com` in these examples), so a composed `spexd.com` link
+opens no organization. One tool doesn't return one:
+`getOutstandingWorkForEntity`, whose items are addressed by their own `reference` like anything else; the optional
 `path` array they also carry is the ancestor chain, and its absence means that
 row's chain is broken rather than that you can't address it. If the ask spans
 several entities — "what's outstanding on FEAT-6" — give the same link + title
