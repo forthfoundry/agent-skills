@@ -279,10 +279,10 @@ builds on.
 - **The references are the only inputs.** Read each one with `getEntities` /
   `readDocument` as it stands when the unit starts. A person may have renamed,
   edited or cancelled it during the pause between stages
-  ([REQ-376/AC-2](https://www.spexd.com/e/REQ-376?ac=AC-2)).
+  ([REQ-376/AC-2](https://acme.spexd.com/e/REQ-376?ac=AC-2)).
 - **Call `useRepository` for each repository in scope** before reading code.
 - **Everything is drafted and never approved**
-  ([REQ-83](https://www.spexd.com/e/REQ-83)), exactly as in the external route.
+  ([REQ-83](https://acme.spexd.com/e/REQ-83)), exactly as in the external route.
 - **No stage calls `reportImportComplete`.** An in-product run completes itself;
   that call belongs to the external route's last step.
 
@@ -377,7 +377,7 @@ question the sources leave open — two sources giving different values for the
 same rule, a behaviour referenced but never specified, code and documentation
 disagreeing about what the system does. If not, raise a **follow-up task** with
 `createTask` once the entity it concerns exists. The design behind this rule is
-[DES-455](https://www.spexd.com/e/DES-455).
+[DES-455](https://acme.spexd.com/e/DES-455).
 
 - **Read further before raising one.** A point you could settle by reading
   another file, page or ticket is read, not ticketed.
