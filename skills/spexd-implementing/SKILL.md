@@ -351,8 +351,16 @@ it must move as the work moves:
   which is exactly what you want, and another reason to do it before you write
   code rather than after.
 - **`IMPLEMENTATION_STARTED → PR_RAISED`** — when the work moves into PR review.
-- **`→ COMPLETED`** on PR merge. This one is **system-driven** and there is no
-  manual route to it — never try to set it by hand.
+- **`→ COMPLETED`** — how the task finishes depends on whether its work raises
+  a pull request:
+  - **Work that raises a PR completes on merge, automatically.** `PR_RAISED →
+    COMPLETED` is **system-driven**: once the task is `PR_RAISED`, only the
+    merge completes it, so never set `COMPLETED` by hand — the move is refused.
+  - **Work that produces no PR** (a configuration, data or spec-only task) has
+    no merge to complete it, so **you make this move yourself**: once the work
+    is done and verified, transition the task `IMPLEMENTATION_STARTED →
+    COMPLETED` with `transitionEntityStatuses`. Don't use this route to skip a
+    PR the work should have had.
 
 **Name the task in the branch and the PR, and the rest of the lifecycle mostly
 drives itself.** Where the repository is connected to Spexd, GitHub activity
