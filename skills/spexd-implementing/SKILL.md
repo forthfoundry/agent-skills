@@ -255,17 +255,16 @@ after your session ends.
 ### 5. Plan — check your approach against the spec
 
 The pre-start check asks whether the spec is safe to build; the plan asks
-whether what *you're* about to build is that spec. Before the first edit — and
-before you transition the task — work out how you'll deliver it: the changes
-you'll make and where, and the tests you'll add with the `REQ-x/AC-y` each
-proves. The plan is your own working, not a deliverable: don't present it for
-approval, ask for feedback on it or wait for a go-ahead. Its job is to make you
-check your approach against the spec before you commit to it.
+whether what *you're* about to build is that spec. Before the first edit, and
+before you transition the task, work out how you'll deliver it: the changes and
+where they go, and the tests with the `REQ-x/AC-y` each proves. The plan is
+your own working: don't present it, ask for feedback on it or wait for a
+go-ahead.
 
-**Writing the plan is where you check it.** Hold each line against what the
-task, its design and the design's acceptance criteria say, and name every place
-the plan departs from them as a **deviation** — explicitly, never folded into
-the plan as if the spec had said it. A deviation is any of:
+Hold each part of the plan against the task, its design and the design's
+acceptance criteria, and name every place it departs from them as a
+**deviation**, never folded in as if the spec had said it. A deviation is any
+of:
 
 - a different approach or mechanism from the one the task or design specifies;
 - information the spec is missing, or that contradicts itself (task against
@@ -275,9 +274,9 @@ the plan as if the spec had said it. A deviation is any of:
 - a constraint the spec didn't anticipate — in the codebase, a dependency or the
   platform — that forces a different shape.
 
-**Then judge each one: does it materially change the intent?** Intent is what
-the task, and the design it delivers, set out to achieve. The test: would
-whoever approved them, seeing the result, recognise it as what they signed off?
+**Judge each deviation: does it materially change the intent** of the task or
+the design it delivers? The test: would whoever approved them recognise the
+result as what they signed off?
 
 - **Immaterial** — *how* you get there differs; *what* is delivered doesn't. A
   different internal helper, structure or file layout, one library call over
@@ -306,9 +305,8 @@ costs the work. For example:
   every client task built against it.
 
 **Material → stop and explain, before you build.** Don't transition the task,
-don't branch, don't write code, and don't build the alternative intending to
-explain it in the PR — a gap raised at the end arrives after the work it should
-have shaped. For each material deviation, report with links:
+branch or write code, and don't build the alternative intending to explain it
+in the PR. For each material deviation, report with links:
 
 1. **What the spec says** — quote the task, design or criterion.
 2. **What you'd have to do instead.**
@@ -316,19 +314,17 @@ have shaped. For each material deviation, report with links:
 4. **The decision you need** — from the user, or a change to the design or
    requirement in Spexd, which is authoring's to make, not yours.
 
-Then stop and ask, exactly as a flagged pre-start check does; the task stays
-`APPROVED` and the chain unlocked until the answer comes back. To leave a
-durable record, `createCommentThread` on the entity whose text would have to
-change, anchored with `quotedText` on the passage in question.
+Then stop and ask, as a flagged pre-start check does; the task stays `APPROVED`
+and the chain unlocked until the answer comes back. Record it with
+`createCommentThread` on the entity whose text would have to change, anchored
+with `quotedText`.
 
-**Immaterial → record it and carry on.** Recording is required: list each
-immaterial deviation in the PR description — one line on what differs and why
-intent is unaffected — alongside any mockup gap-fills, so a reviewer can check
-it against the spec. For work that raises no PR, record it with
+**Immaterial → record it and carry on.** Recording is required: list each one
+in the PR description — what differs and why intent is unaffected — alongside
+any mockup gap-fills. For work that raises no PR, record it with
 `createCommentThread` on the task instead.
 
-With no material deviation, go straight from the plan to step 6 — there's
-nothing to stop for, so don't.
+With no material deviation, go straight from the plan to step 6.
 
 ### 6. Build
 
@@ -398,16 +394,15 @@ nothing to stop for, so don't.
   given codebase.
 - Keep the change scoped to the task. Sibling tasks are separate units of work;
   don't fold them in unless asked.
-- **The plan's rule holds all the way through the build.** A deviation you
+- **Step 5's rule holds all the way through the build.** A deviation you
   couldn't see at plan time — a constraint the code reveals, a criterion that
   can't hold as written, a slice that won't land whole — gets the same
-  judgement as step 5 the moment you find it. Immaterial: keep going and add it
-  to the PR description's list. Material: **stop at that point** — don't push
-  through to something that works and explain the gap at the end. Report it in
-  step 5's four parts, record it with `createCommentThread` as below, and leave
-  the task `IMPLEMENTATION_STARTED`: don't raise the PR or mark it ready for
-  review, which would move the task to `PR_RAISED` as though it delivered the
-  spec. Keep what you've built on the branch so it survives the decision.
+  judgement the moment you find it. Immaterial: keep going and add it to the PR
+  description's list. Material: **stop at that point**; don't push through and
+  explain the gap at the end. Report it in step 5's four parts, record it with
+  `createCommentThread` as below, and leave the task `IMPLEMENTATION_STARTED`:
+  don't raise the PR or mark it ready for review, which would move the task to
+  `PR_RAISED`. Keep what you've built on the branch.
 - **If the design is wrong or silent** on something you need — a material
   deviation by definition — don't guess an architecture. Surface the gap (to the user, or by flagging the design for
   authoring to amend). Update the *design* first, then implement — never the
@@ -646,8 +641,8 @@ raise the design problem the way steps 5 and 6 of the loop describe.
    its design or its criteria. Judge each for material change of intent: if
    any is material, stop and explain what the spec says, what you'd do
    instead, why, and the decision you need; record immaterial ones
-   in the PR description, and go straight on to build — the plan itself is
-   your own working, not something to present or wait on.
+   in the PR description (or a comment on the task if there's no PR), and go
+   straight on to build. Don't present the plan or wait on it.
 6. `transitionEntityStatuses` the task to `IMPLEMENTATION_STARTED` as work
    begins — before the branch, not after the push — then branch, with exactly
    one task reference in the name.
