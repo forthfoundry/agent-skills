@@ -256,10 +256,11 @@ after your session ends.
 
 The pre-start check asks whether the spec is safe to build; the plan asks
 whether what *you're* about to build is that spec. Before the first edit — and
-before you transition the task — write down how you'll deliver it: the changes
+before you transition the task — work out how you'll deliver it: the changes
 you'll make and where, and the tests you'll add with the `REQ-x/AC-y` each
-proves. A few bullets per area of change is enough, as long as someone holding
-the task and its design could check it line by line.
+proves. The plan is your own working, not a deliverable: don't present it for
+approval, ask for feedback on it or wait for a go-ahead. Its job is to make you
+check your approach against the spec before you commit to it.
 
 **Writing the plan is where you check it.** Hold each line against what the
 task, its design and the design's acceptance criteria say, and name every place
@@ -320,14 +321,14 @@ Then stop and ask, exactly as a flagged pre-start check does; the task stays
 durable record, `createCommentThread` on the entity whose text would have to
 change, anchored with `quotedText` on the passage in question.
 
-**Immaterial → record it and carry on.** List each immaterial deviation in the
-plan — one line on what differs and why intent is unaffected — and carry the
-list into the PR description, alongside any mockup gap-fills, so a reviewer can
-check it against the spec. For work that raises no PR, record it with
+**Immaterial → record it and carry on.** Recording is required: list each
+immaterial deviation in the PR description — one line on what differs and why
+intent is unaffected — alongside any mockup gap-fills, so a reviewer can check
+it against the spec. For work that raises no PR, record it with
 `createCommentThread` on the task instead.
 
-**Report the plan before you start building** — with its deviations, or *no
-deviations*. If none is material, don't wait for sign-off: carry on to step 6.
+With no material deviation, go straight from the plan to step 6 — there's
+nothing to stop for, so don't.
 
 ### 6. Build
 
@@ -644,8 +645,9 @@ raise the design problem the way steps 5 and 6 of the loop describe.
 5. Plan the delivery before any code, and name every deviation from the task,
    its design or its criteria. Judge each for material change of intent: if
    any is material, stop and explain what the spec says, what you'd do
-   instead, why, and the decision you need; record immaterial ones in the plan
-   and the PR description, and carry on.
+   instead, why, and the decision you need; record immaterial ones
+   in the PR description, and go straight on to build — the plan itself is
+   your own working, not something to present or wait on.
 6. `transitionEntityStatuses` the task to `IMPLEMENTATION_STARTED` as work
    begins — before the branch, not after the push — then branch, with exactly
    one task reference in the name.
