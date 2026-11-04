@@ -6,7 +6,8 @@ description: >-
   requirement → feature) via the Spexd MCP tools (mcp__Spexd__*), open by
   reporting the entity's link, title and a concise summary, run a pre-start
   check (task status, open comments, still consistent with its parent design)
-  and flag anything before starting, build to that
+  and flag anything before starting, plan the approach and stop on any
+  deviation from the spec that materially changes its intent, build to that
   spec, and reflect progress back onto the task's lifecycle status. Given a
   parent entity instead — a feature, requirement or design — expand it into its
   tasks, order them, and ship one branch and one PR per task. Use when
@@ -26,8 +27,9 @@ is the mirror of `spexd-authoring`: authoring decides *what* to build and *how*;
 implementing carries out a decision that has already been made.
 
 **The one rule that governs everything: implement the spec, don't rewrite it.**
-A task executes a design; it never invents architecture. If, while building, you
-find the design is wrong, missing, or under-specified, **stop and surface it** —
+A task executes a design; it never invents architecture. If, while planning or
+building, you find the design is wrong, missing, or under-specified, or that
+delivering it means departing from what it says, **stop and surface it** —
 raise it with the humans or hand back to authoring to fix the *design* — rather
 than quietly building something the chain doesn't describe. Code that diverges
 from its design breaks traceability, which is the whole point of Spexd.
@@ -46,10 +48,11 @@ feature, split a requirement, draft acceptance criteria — that's
 
 ## The loop
 
-Implementing a task is six steps: **find the work → orient → gather the
-context → pre-start check → build → reflect status.** Never skip straight from
-"find" to "build" — the context above the task is what makes the implementation
-correct, and the pre-start check is what confirms that context still holds.
+Implementing a task is seven steps: **find the work → orient → gather the
+context → pre-start check → plan → build → reflect status.** Never skip straight
+from "find" to "build" — the context above the task is what makes the
+implementation correct, the pre-start check is what confirms that context still
+holds, and the plan is what confirms you're about to build what it says.
 
 ### 1. Find the work
 
@@ -244,12 +247,86 @@ criterion the task doesn't cover is not a mismatch.
   veto — but that is their call, and it gets made before the chain locks.
 
 Don't repair what you flag. The task, design and criteria are the spec, and
-fixing them is authoring's job (see the design-gap handling in step 5). If a
+fixing them is authoring's job (see the design-gap handling in step 6). If a
 finding needs a durable home beyond this conversation, `createCommentThread` on
 the affected entity — anchored with `quotedText` — records it for the humans
 after your session ends.
 
-### 5. Build
+### 5. Plan — check your approach against the spec
+
+The pre-start check asks whether the spec is safe to build; the plan asks
+whether what *you're* about to build is that spec. Before the first edit, and
+before you transition the task, work out how you'll deliver it: the changes and
+where they go, and the tests with the `REQ-x/AC-y` each proves. The plan is
+your own working: don't present it, ask for feedback on it or wait for a
+go-ahead.
+
+Hold each part of the plan against the task, its design and the design's
+acceptance criteria, and name every place it departs from them as a
+**deviation**, never folded in as if the spec had said it. A deviation is any
+of:
+
+- a different approach or mechanism from the one the task or design specifies;
+- information the spec is missing, or that contradicts itself (task against
+  design, prose against mockup, design against a criterion);
+- scope that doesn't fit — less than the task, more than it, or a slice that
+  can't land whole;
+- a constraint the spec didn't anticipate — in the codebase, a dependency or the
+  platform — that forces a different shape.
+
+**Judge each deviation: does it materially change the intent** of the task or
+the design it delivers? The test: would whoever approved them recognise the
+result as what they signed off?
+
+- **Immaterial** — *how* you get there differs; *what* is delivered doesn't. A
+  different internal helper, structure or file layout, one library call over
+  another, a private refactor the change needs, tests arranged differently from
+  the task's wording — anything that still satisfies every acceptance criterion
+  and the task's definition of done, inside the design's components, contracts
+  and boundaries.
+- **Material** — what is delivered changes. Dropping, weakening or
+  reinterpreting an acceptance criterion; changing user-visible behaviour, flow
+  or copy from what the spec or its mockups show; changing a contract, API,
+  schema, event or data model the design specifies, or a component or boundary
+  it names; changing scope — building less than the task, more, or a sibling
+  task's work.
+
+When unsure, treat it as material: asking costs one round trip, guessing wrong
+costs the work. For example:
+
+- *Immaterial*: [DES-9](https://acme.spexd.com/e/DES-9) puts request validation
+  "in the ride service"; the repository already keeps validators in
+  `validators/`, so the plan adds `validateRideRequest` there and calls it from
+  the service. Same checks, same contract, every criterion still holds.
+- *Material*: [TASK-12](https://acme.spexd.com/e/TASK-12) and its design specify
+  `POST /api/rides` returning `201` with the created ride, but the gateway in
+  front of the service turns any write slower than two seconds into `202` plus
+  polling. Delivering it means changing a contract the design specifies — and
+  every client task built against it.
+
+**Material → stop and explain, before you build.** Don't transition the task,
+branch or write code, and don't build the alternative intending to explain it
+in the PR. For each material deviation, report with links:
+
+1. **What the spec says** — quote the task, design or criterion.
+2. **What you'd have to do instead.**
+3. **Why** — the constraint, gap or contradiction that forces it.
+4. **The decision you need** — from the user, or a change to the design or
+   requirement in Spexd, which is authoring's to make, not yours.
+
+Then stop and ask, as a flagged pre-start check does; the task stays `APPROVED`
+and the chain unlocked until the answer comes back. Record it with
+`createCommentThread` on the entity whose text would have to change, anchored
+with `quotedText`.
+
+**Immaterial → record it and carry on.** Recording is required: list each one
+in the PR description — what differs and why intent is unaffected — alongside
+any mockup gap-fills. For work that raises no PR, record it with
+`createCommentThread` on the task instead.
+
+With no material deviation, go straight from the plan to step 6.
+
+### 6. Build
 
 - Implement to the **design's** mechanism and the **task's** definition of done.
   Satisfy **every** acceptance criterion in the design's AC set, golden path and
@@ -317,8 +394,17 @@ after your session ends.
   given codebase.
 - Keep the change scoped to the task. Sibling tasks are separate units of work;
   don't fold them in unless asked.
-- **If the design is wrong or silent** on something you need: don't guess an
-  architecture. Surface the gap (to the user, or by flagging the design for
+- **Step 5's rule holds all the way through the build.** A deviation you
+  couldn't see at plan time — a constraint the code reveals, a criterion that
+  can't hold as written, a slice that won't land whole — gets the same
+  judgement the moment you find it. Immaterial: keep going and add it to the PR
+  description's list. Material: **stop at that point**; don't push through and
+  explain the gap at the end. Report it in step 5's four parts, record it with
+  `createCommentThread` as below, and leave the task `IMPLEMENTATION_STARTED`:
+  don't raise the PR or mark it ready for review, which would move the task to
+  `PR_RAISED`. Keep what you've built on the branch.
+- **If the design is wrong or silent** on something you need — a material
+  deviation by definition — don't guess an architecture. Surface the gap (to the user, or by flagging the design for
   authoring to amend). Update the *design* first, then implement — never the
   other way round. `createCommentThread` on the design is the durable way to
   raise it — anchor the thread to the exact passage with `quotedText` so the
@@ -331,15 +417,15 @@ after your session ends.
   resolve: a person answers it by amending the design, so leave it for them.
   **Never reopen or delete a thread.**
 
-### 6. Reflect status — keep the task's lifecycle honest
+### 7. Reflect status — keep the task's lifecycle honest
 
 A task carries an implementation sub-flow that the rest of the chain reads, so
 it must move as the work moves:
 
 - **`APPROVED → IMPLEMENTATION_STARTED`** — **the moment work starts, and you
   make this move yourself.** "Starts" means when you begin building: after
-  you've read the chain, passed the pre-start check and decided this is the
-  task, before the branch exists
+  you've read the chain, passed the pre-start check, planned with no material
+  deviation outstanding and decided this is the task, before the branch exists
   and before the first edit. Don't wait for a branch push to trigger it — that
   leaves the task sitting `APPROVED` while files are already changing, so
   anyone reading Spexd sees the work as unclaimed when it isn't, and two agents
@@ -460,8 +546,8 @@ is for genuine dependency, not for tidiness, and every unnecessary link in it
 is one more PR that has to be merged in order.
 
 **4. One task's cycle at a time, PR raised before you move on.** For each task
-in turn, run the full loop: transition it to `IMPLEMENTATION_STARTED` as work
-starts, build it, raise its PR titled `{reference}: {title}`, and confirm it
+in turn, run the full loop: pre-start check and plan it against its own design,
+transition it to `IMPLEMENTATION_STARTED` as work starts, build it, raise its PR titled `{reference}: {title}`, and confirm it
 reached `PR_RAISED`. Then start the next. Don't batch the PRs up to the end —
 raising each as its task finishes is what lets review start on the earlier work
 while you build the later, which is the whole point of the stack.
@@ -473,11 +559,11 @@ tells you which PRs Spexd has actually observed for a task if a status looks
 stale.
 
 If a task partway down turns out to be unbuildable — its design is wrong, a
-dependency isn't done, the slice can't merge without dead paths — **stop at
-that task and surface it**. Don't skip it and stack the remaining tasks on the
+dependency isn't done, the slice can't merge without dead paths, its plan or
+build turns up a material deviation — **stop at that task and surface it**. Don't skip it and stack the remaining tasks on the
 gap; the branch below it would then carry work whose foundation isn't agreed.
 Land what's already reviewable, say which task you stopped on and why, and
-raise the design problem the way step 5 of the loop describes.
+raise the design problem the way steps 5 and 6 of the loop describe.
 
 ## Operational notes (MCP surface)
 
@@ -540,7 +626,7 @@ raise the design problem the way step 5 of the loop describes.
 1. Resolve the work (by reference, or by finding what's outstanding). If you
    were given a parent, expand it into its tasks, order them by their
    `**Depends on:**` lines and by what's reviewable alone, and state that order
-   — then run steps 2–8 once per task, stacking each branch on the last.
+   — then run steps 2–9 once per task, stacking each branch on the last.
 2. Report it back first: **link (`viewUrl`) + title + concise summary**, before
    any plan or code.
 3. Read the full ancestor chain (design → ACs → requirement → feature) before
@@ -551,18 +637,25 @@ raise the design problem the way step 5 of the loop describes.
    its `**Depends on:**` line outstanding; no open comment thread bears on it;
    the task still meets its parent design. Report it — if anything is flagged,
    stop and ask rather than forcing a transition or building out of order.
-5. `transitionEntityStatuses` the task to `IMPLEMENTATION_STARTED` as work
+5. Plan the delivery before any code, and name every deviation from the task,
+   its design or its criteria. Judge each for material change of intent: if
+   any is material, stop and explain what the spec says, what you'd do
+   instead, why, and the decision you need; record immaterial ones
+   in the PR description (or a comment on the task if there's no PR), and go
+   straight on to build. Don't present the plan or wait on it.
+6. `transitionEntityStatuses` the task to `IMPLEMENTATION_STARTED` as work
    begins — before the branch, not after the push — then branch, with exactly
    one task reference in the name.
-6. Implement to the design and the task's definition of done; let the code
+7. Implement to the design and the task's definition of done; let the code
    explain itself and keep comments to file-level and genuinely ambiguous
    points; write the tests it names, annotate each with the `REQ-x/AC-y` it
    proves, cover the regressions it calls out, and satisfy every AC. Build UI
    as close to its mockups as possible, inventing no design or copy they
-   already cover, and list any gap you had to fill in the PR.
-7. Raise the PR, titled `{reference}: {title}` (e.g. `TASK-12: Implement POST
+   already cover, and list any gap you had to fill in the PR. A material
+   deviation found mid-build stops the build there, just as at step 5 — no PR.
+8. Raise the PR, titled `{reference}: {title}` (e.g. `TASK-12: Implement POST
    /api/rides`) and naming that one task only; confirm the task reached
    `PR_RAISED` (or transition it); link the task, its design and any other
    entity or stacked PR from the description.
-8. If the design proved wrong or incomplete, report it (or fix the *design* via
+9. If the design proved wrong or incomplete, report it (or fix the *design* via
    authoring) — don't let the code and the spec diverge.
