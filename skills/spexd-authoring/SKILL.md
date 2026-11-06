@@ -771,7 +771,9 @@ the task exists to commission is not.
 - **Set the repository on every design and task.** Where the work lives is a
   field, not a sentence in the body. `listGitHubConnections` lists the
   repositories connected to the org; `linkEntityRepository` attaches one by its
-  `github_repo_id`; `listEntityRepositories` reads back what an entity carries.
+  `owner/name` (the `fullName` that listing shows), which you can carry across
+  turns and hand-offs where an opaque numeric id gets lost;
+  `listEntityRepositories` reads back what an entity carries.
   The cardinality mirrors the levels: **entities above a task accumulate any
   number of repositories** — so a design that spans repos links each one it
   touches — while **a task carries exactly one**, and linking another
