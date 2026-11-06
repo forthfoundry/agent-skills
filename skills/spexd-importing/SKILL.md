@@ -110,12 +110,13 @@ everything else hangs off.
    `listProjects` and `listFeatures` / `listProjectFeatures` first to avoid
    duplicating an existing home — a partial import of the same system may already be there.
 4. **Link each feature to its repository as you create it.** Call
-   `listGitHubConnections` once to map the repositories you surveyed to their
-   `github_repo_id`s, then `linkEntityRepository` every feature to each
-   repository its evidence lives in (see *Link every entity to its repository*).
+   `listGitHubConnections` once to confirm the repositories you surveyed are
+   connected and to take each one's `owner/name` (its `fullName`), then
+   `linkEntityRepository` every feature to each repository its evidence lives
+   in, by that name (see *Link every entity to its repository*).
 
 Capture the returned `featureRef` for every feature — those are the fan-out
-work items for Phase 2 — along with the `github_repo_id` of each repository
+work items for Phase 2 — along with the `owner/name` of each repository
 behind it, which its sub-agent needs to link what it creates.
 
 ## Phases 2 & 3 — Fan out: requirements, then acceptance criteria (sub-agents)
@@ -129,14 +130,14 @@ references themselves are server-generated and unique across the whole org, so
 nothing depends on the fan-out to keep them apart.
 
 Give each sub-agent enough to work independently: the feature's `reference`,
-title and body; the sources that back it; the `github_repo_id` of each
+title and body; the sources that back it; the `owner/name` of each
 repository those sources live in; the pointer to load `spexd-authoring`
 for altitude; and the two rules above. A prompt template:
 
 > You are importing one feature of an existing project into Spexd. **First load
 > the `spexd-authoring` skill and apply its altitude rules.** Feature:
 > `<featureRef>` — "<title>". Its evidence: `<files/docs/routes>`. Its
-> repositories: `<fullName> (github_repo_id <id>)`, one per repository.
+> repositories: `<owner/name>`, one per repository.
 >
 > **Step A — Requirements.** Read the code and docs behind this feature and
 > derive the behavioural rules it must uphold — what must be *true* within the
@@ -480,7 +481,8 @@ with one search. The body carries:
   was reverse-engineered from, and the designs and tasks that follow inherit an
   obvious place to work. `listGitHubConnections` lists the repositories
   connected to the org, and `linkEntityRepository` attaches one by its
-  `github_repo_id`; `listEntityRepositories` reads back what an entity carries.
+  `owner/name` (the `fullName` that listing shows);
+  `listEntityRepositories` reads back what an entity carries.
   For a design this means every repository its seam spans. Entities above a
   task accumulate repositories, so link each one that applies. The only
   exceptions:
