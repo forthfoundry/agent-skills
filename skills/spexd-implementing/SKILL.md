@@ -412,9 +412,10 @@ not bookkeeping:
   Both name the task being built and nothing else — never a second task, never
   the parent design, requirement or feature. `DES-320: add ride requests` is
   wrong even when the branch really does implement the whole design; so is
-  `TASK-612 + TASK-613: schema and endpoint`. A branch or title naming a parent
-  resolves `out_of_scope`, and one naming two tasks is `ambiguous` — either
-  way, nothing moves. Every other entity goes in the **PR description**: link
+  `TASK-612 + TASK-613: schema and endpoint`. `resolveGitHubBranch` takes the
+  deepest reference named, so a branch or title naming only a parent resolves
+  `out_of_scope`, and one naming two tasks is `ambiguous` — either way,
+  nothing moves. Every other entity goes in the **PR description**: link
   the task, the design it executes, the acceptance criteria the change
   satisfies, and the PR beneath it in the stack. The title is the address; the
   body is the context.
@@ -422,7 +423,15 @@ not bookkeeping:
   they can lag or, on an unconnected repository, never arrive.
   `listTaskPullRequests` shows the PRs Spexd has actually observed for a task,
   and `listEntityRepositories` shows whether the task is linked to a repository
-  at all. If the task hasn't moved, transition it yourself.
+  at all.
+- **If Spexd hasn't seen the PR, link it — don't just move the status.** Only
+  the merge of a PR Spexd has linked to the task completes it, so a task moved
+  to `PR_RAISED` by hand over a PR missing from `listTaskPullRequests` will
+  never complete. Attach the PR with `linkUnlinkedWorkToTask` (by its
+  `githubPrId`, or the repository id and branch for a branch;
+  `listUnlinkedWork` finds the row). That drives the task's lifecycle as the
+  webhook would have, and `lifecycle.applied` reports what moved. Transition
+  by hand only when the PR is linked and the status still lags.
 
 **Transitioning by hand** is `transitionEntityStatuses` — one tool for every
 kind, taking a batch of 1–25 `{ reference, targetStatus }` pairs addressed by
@@ -492,8 +501,9 @@ reached `PR_RAISED`. Then start the next. Don't batch the PRs up to the end —
 raising each as its task finishes is what lets review start on the earlier work
 while you build the later, which is the whole point of the stack.
 
-**5. Keep the stack honest as it merges.** When an earlier PR merges, GitHub
-repoints the PR stacked on it at the merged branch's base; merge or rebase down
+**5. Keep the stack honest as it merges.** When an earlier PR merges and its
+branch is deleted, GitHub retargets the PR stacked on it at the merged
+branch's base; if the branch is kept, retarget it yourself. Then merge or rebase down
 the stack so the later PRs keep showing only their own change. `listTaskPullRequests`
 tells you which PRs Spexd has actually observed for a task if a status looks
 stale.
