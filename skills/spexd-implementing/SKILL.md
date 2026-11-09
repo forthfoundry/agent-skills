@@ -57,15 +57,9 @@ correct, and the pre-start check is what confirms that context still holds.
 
 ### 1. Find the work
 
-- **Given a task reference**, read it with both `getEntity` and
-  `readDocument`, which answer different questions. `getEntity` is
-  **content-free** — it gives the type, owning feature, lifecycle status,
-  `viewUrl` and the ordered ancestor chain, and never the body.
-  `readDocument` is the only tool that returns a body at all: the LIVE draft
-  by default (ahead of the published version where there are unpublished
-  edits), plus the current `status` and the published head `version`. Both take
-  the bare reference and nothing else — no owning feature, no kind — so neither
-  has to wait on the other.
+- **Given a task reference**, `getEntity` on it. It is content-free, but it
+  gives the title, status, `viewUrl` and the ordered ancestor chain — enough to
+  orient, and the references step 3 reads in one batch.
 - **Given a branch name or PR title**, `resolveGitHubBranch` turns it into the
   entity it names in one hop — no need to parse the reference out yourself. It
   reports an `outcome`: `resolved` (a task, on `task`), `out_of_scope` (the
@@ -162,22 +156,24 @@ Before writing code, read the whole ancestor chain so you build the right thing:
 - **Feature** (`readDocument`) — the product capability and why it matters; the
   scope boundaries that tell you what *not* to build.
 
-**Two tools, two jobs.** `getEntity` is content-free: it gives the shape —
-type, status, owning feature, `viewUrl`, and the **ordered ancestor chain** —
-so reading the task already tells you the design, requirement and feature above
-it without walking up one call at a time, and `getEntities` pulls that whole
-set's metadata in one batched call, mixed kinds and all. But no body ever comes
-back from it. For the actual spec text, `readDocument` takes **1–10 references
-at once**, so the design, requirement and feature are a single call. Read the
-live draft (the default) rather than a published version — it's what
-collaborators currently see. Acceptance criteria are the exception to bare-
-reference addressing: an AC's reference is numbered within its requirement
-rather than org-wide, so criteria are fetched through their owning requirement.
+**Read the chain in three rounds, not one call per entity.**
 
-`readDocument` also returns each document's `commentThreads`. Skim them before
-building: an anchored discussion on the design is often where a caveat that
-never made it into the body lives. Pull the ones that look relevant with
-`getCommentThreads`.
+1. `getEntity(task)` — the ancestor chain (step 1 already made this call).
+2. In parallel: `readDocument([task, design, requirement, feature])` and
+   `getDesignCoverage(design)`. The one `readDocument` call returns, for every
+   entity, its body (the live draft), current `status`, `viewUrl` and
+   `commentThreads`; for the requirement, its `criteria` with their
+   given/when/then and `because`; for the design, its review `verdict`. That
+   is everything steps 3 and 4 need except the comment text.
+3. `getCommentThreads` for the **open** threads that look relevant —
+   `commentThreads` already gives each one's status and anchor, so a resolved
+   thread never needs fetching. An anchored discussion on the design is often
+   where a caveat that never reached the body lives.
+
+Reach for `listAcceptanceCriteria` only when you need what the requirement's
+`criteria` lack — each criterion's `fulfilledBy` designs or its own review
+`verdict`. Criteria are addressed through their requirement (`REQ-7/AC-5`),
+never by a bare `AC-n`.
 
 **Collect the visual design for any UI work.** If the task touches UI, gather
 every design asset the chain carries — Figma (or other design tool) frame
@@ -204,7 +200,7 @@ report the outcome before you transition the task or cut a branch.** Most of
 what you need is already in hand from steps 1–3; the rest is a cheap read away.
 
 **a. Status — is the task ready to build?** Read the task's `status`
-from `getEntity`/`readDocument` (fresh, not remembered from earlier in the
+from step 3's `readDocument` batch (fresh, not remembered from earlier in the
 session).
 
 - `APPROVED` is the only ready state. Anything else is a flag: `DRAFT`,
@@ -214,7 +210,7 @@ session).
 - `IMPLEMENTATION_STARTED` or `PR_RAISED` means work on it is already under
   way. Check `listTaskPullRequests` and `listEntityRepositories` for an existing
   branch or PR, and say what you found rather than starting a second attempt.
-- Glance at the ancestors' statuses from the same `getEntities` call. A
+- Glance at the ancestors' statuses from the same `readDocument` batch. A
   `CANCELLED` or `INVALIDATED` design, requirement or feature under an
   `APPROVED` task is a flag. (`LOCKED` ancestors are normal once implementation
   has started anywhere on the chain.)
