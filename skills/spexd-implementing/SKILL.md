@@ -31,8 +31,9 @@ implementing carries out a decision that has already been made.
 **The one rule that governs everything: implement the spec, don't rewrite it.**
 A task executes a design; it never invents architecture. If, while building, you
 find the design is wrong, missing, or under-specified, **stop and surface it** —
-raise it with the humans or hand back to authoring to fix the *design* — rather
-than quietly building something the chain doesn't describe. Code that diverges
+on the design, and leave the fix to a person — rather than quietly building
+something the chain doesn't describe. You never edit the spec yourself while
+implementing: once the task starts, the chain is locked and edits are refused. Code that diverges
 from its design breaks traceability, which is the whole point of Spexd.
 
 ## When to use this
@@ -340,10 +341,13 @@ after your session ends.
 - Keep the change scoped to the task. Sibling tasks are separate units of work;
   don't fold them in unless asked.
 - **If the design is wrong or silent** on something you need: don't guess an
-  architecture. Surface the gap (to the user, or by flagging the design for
-  authoring to amend). Update the *design* first, then implement — never the
-  other way round. `createCommentThread` on the design is the durable way to
-  raise it — anchor the thread to the exact passage with `quotedText` so the
+  architecture, and don't edit the design. Stop and surface the gap to the
+  user; the design is fixed before the code that depends on it, never the
+  other way round. Once implementation has started anywhere on the chain it is
+  `LOCKED`, so the design can only change inside a proposal — that is the
+  user's call, made with `spexd-authoring` (its *Proposals* section), not a
+  workaround for you to reach for. `createCommentThread` on the design is the
+  durable way to raise it — anchor the thread to the exact passage with `quotedText` so the
   question sits on the sentence that's wrong, and it stays there for a human
   after your session ends. Comments are accepted on an entity in any status, so
   this works even once implementation has locked the chain and edits are
@@ -526,18 +530,11 @@ raise the design problem the way step 5 of the loop describes.
   `precis` of what it changed — and `compareVersions` gives the difference
   between two published versions directly. Worth a look when a task's design
   was invalidated and re-approved and you need to know what moved.
-- **You generally don't author while implementing.** If you must correct the spec:
-  `readDocument`, then one `editDocument` carrying **every** change as an ordered
-  `ops` batch — not a call per change — each op targeting `target.find` (exact
-  text, occurring exactly once) or, for something with no text to match, a
-  `target.handle` from `searchDocument`. If any op fails the whole batch is
-  rejected and the document is untouched. Publishing is then **two** calls:
-  a content-less `publishDocument` (`baseVersion` from `readDocument`, advisory)
-  which writes nothing and returns a cascade proposal plus a one-hour token, and
-  `confirmPublish({ token })`, which is what actually writes — always two, even
-  when nothing would be invalidated, and not confirming is simply cancelling. A
-  confirm rejected as stale means re-propose. See `spexd-authoring` for the full
-  authoring workflow.
+- **You don't author while implementing.** The chain you build against is
+  `LOCKED`, and `editDocument` and publishing are refused on it. Raise what is
+  wrong as a comment thread and stop. If the user asks you to change the spec,
+  that is authoring work: load `spexd-authoring`'s *Editing*, *Publishing* and
+  *Proposals* sections and follow them.
 - **A reference is org-unique, so nothing has to be qualified to read it back.**
   `TASK-991` pasted from a branch name or a PR title resolves on its own through
   `getEntity` (or, from the raw branch/PR text, `resolveGitHubBranch`). The
@@ -588,5 +585,6 @@ raise the design problem the way step 5 of the loop describes.
    /api/rides`) and naming that one task only; confirm the task reached
    `PR_RAISED` (or transition it); link the task, its design and any other
    entity or stacked PR from the description.
-8. If the design proved wrong or incomplete, report it (or fix the *design* via
-   authoring) — don't let the code and the spec diverge.
+8. If the design proved wrong or incomplete, report it and raise it as a
+   comment thread on the design — never edit it yourself, and don't let the
+   code and the spec diverge.
