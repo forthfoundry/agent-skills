@@ -1,73 +1,94 @@
 ---
 name: spexd-authoring
 description: >-
-  Author and curate the whole Spexd traceability chain — features,
-  requirements, acceptance criteria, designs, and tasks — via the Spexd MCP
-  tools (mcp__Spexd__*). Use when asked to populate Spexd, add or reorganise
-  any entity, or import work from tickets/docs/code. Encodes the
-  altitude/classification lens so each entity lands at the right level and
-  implementation detail never leaks upward into a feature or requirement.
+  Author and curate the Spexd traceability chain — features, requirements,
+  acceptance criteria, designs and tasks — via the Spexd MCP tools. Use when
+  asked to write, refine, reorganise or publish any Spexd entity, or to add
+  entities from tickets, docs or code. Encodes the altitude lens so each
+  entity lands at the right level and implementation detail never leaks
+  upward into a feature or requirement. To bootstrap a whole spec from an
+  existing codebase, use spexd-importing instead.
 user-invocable: true
 ---
 
-# Authoring the Spexd traceability chain
+<!--
+Section headings are an API. Spexd serves this skill one section at a time
+through loadSkill, and its tool descriptions name sections exactly ("Feature",
+"Requirement", "Acceptance Criteria", "Design", "Task", "Content conventions
+(all entities)"); sibling skills cite others ("What a good design covers").
+Renaming a heading breaks those pointers. There is deliberately no H1: an H1
+would contain every section, so loading it would return the whole body.
+Every cross-reference in italics must be a heading loadSkill can return.
+-->
 
-Spexd models a strict traceability chain: **Feature → Requirement →
-Acceptance Criteria → Design → Task**. Getting content onto the right level
-matters more than wording — classify first, write second. A misplaced
-entity can be retired (cancelled), but retirement is irreversible, so it's
-still cheaper to place things correctly the first time.
+## Start here
 
-Each level answers a different question, and the answers get more concrete as
-you descend:
+Spexd models a strict chain: **Feature → Requirement → Acceptance Criteria →
+Design → Task**. Placing content at the right level matters more than wording —
+classify first, write second. A misplaced entity can only be retired by
+cancelling it, which is irreversible.
 
-| Level | Answers | Altitude |
-|---|---|---|
-| **Feature** | *What can someone do, and why does it matter?* | Product scope |
-| **Requirement** | *What must be true within that capability?* | Behavioural rule |
-| **Acceptance Criteria** | *How will we know it's true?* | Testable condition |
-| **Design** | *How do we build it so those conditions hold?* | Architecture & mechanism |
-| **Task** | *What work ships a slice of that design?* | Unit of work |
+| Level | Answers | Altitude | Written for |
+|---|---|---|---|
+| **Feature** | *What can someone do, and why does it matter?* | Product scope | Senior product managers and executives |
+| **Requirement** | *What must be true within that capability?* | Behavioural rule | Product managers, engineering leadership, architects |
+| **Acceptance Criteria** | *How will we know it's true?* | Testable condition | Product owners and quality engineers |
+| **Design** | *How do we build it so those conditions hold?* | Architecture & mechanism | Architects, readable by product owners and senior engineers |
+| **Task** | *What work ships a slice of that design?* | Unit of work | Senior engineers |
 
-Put crudely: **Feature and Requirement are the *what* and the *why*; Design and
-Task are the *how*.** Acceptance criteria sit on the hinge — still *what*, but
-stated precisely enough to be proved.
+Feature and Requirement are the *what* and the *why*; Design and Task are the
+*how*. Acceptance criteria sit on the hinge — still *what*, but precise enough
+to prove. Every entity is written to be as human-readable as possible for its
+readers.
+
+**Load only what the job needs.** A name in italics below is a section:
+`loadSkill({ name: "spexd-authoring", section: "<heading>" })`. A section
+includes its subsections.
+
+| You are about to… | Load |
+|---|---|
+| Decide which level something belongs at | *The one rule that governs everything: detail only descends* |
+| Write or rewrite a feature | *Feature*, *Content conventions (all entities)* |
+| Write or rewrite a requirement | *Requirement*, *Content conventions (all entities)* |
+| Write or change an acceptance criterion | *Acceptance Criteria*, *Acceptance criteria and coverage* |
+| Write or rewrite a design | *Design*, *Content conventions (all entities)* |
+| Write or rewrite a task | *Task*, *Content conventions (all entities)* |
+| Edit an existing document | *Editing*, *Content conventions (all entities)* |
+| Publish | *Publishing* |
+| Move, retire or cancel entities | *Status, cancelling and references*, *Process* |
+| Attach a file, screenshot or comment | *Attachments and comments* |
+| Work inside a proposal, or change a frozen entity | *Proposals* |
+| Work without a shell or the repository | *Without a shell or the repository* |
+| Populate or reorganise several levels | *Process* — or load the skill `whole`, since you will use most of it |
 
 ## The one rule that governs everything: detail only descends
 
-Implementation detail is introduced **at the Design level and nowhere
-above it.** A feature or a requirement or an acceptance criterion describes
-*what* and *why* in product terms; the Design entity is the first place that
-decides *how* — and "how" here means **architecture**, not just UX. Data
-models, transactions, concurrency, failure handling, and external services
-all belong in Design, not only screen layouts.
+Implementation detail first appears at **Design** and nowhere above it. "How"
+means architecture, not just UX: data models, transactions, concurrency,
+failure handling and external services all belong in Design.
 
-So, above Design, keep out:
+Above Design, keep out:
 
-- **Vendors and products** — Clerk, Postgres, Redis, Railway, Stripe,
-  Hocuspocus, an SMS provider. A capability is the requirement; the product
-  that delivers it is design.
-- **Libraries, frameworks, and technologies** — RLS, PgBouncer, Yjs, zod, H3
+- **Vendors and products** — Clerk, Postgres, Redis, Stripe, an SMS provider.
+- **Libraries, frameworks and technologies** — RLS, PgBouncer, Yjs, zod, H3
   cells, WebSockets.
 - **Tables, columns, schemas, keys, indexes.**
-- **Algorithms and data structures** — a reference-counter, a CAS on a
-  version column, a finite-state machine, an outbox.
-- **Code, interfaces, type shapes, HTTP contracts** — no `interface`, no
-  route signatures, no request/response bodies.
-- **Effort and sizing in engineering terms** — lines of code, story points,
-  which service or repo it lands in.
+- **Algorithms and data structures** — a reference counter, a CAS on a version
+  column, a state machine, an outbox.
+- **Code, interfaces, type shapes, HTTP contracts.**
+- **Engineering effort and sizing** — lines of code, story points, which
+  service or repo it lands in.
 
-If a technology name shows up in a feature or requirement title or body, the
-entity is misplaced: the capability is the entity, the technology is a Design
-detail. Worked example: *"Organization Data Isolation (Postgres RLS)"* was
-raised as a feature, then correctly reworked as the requirement *"Organization
-Data Isolation"* under the Authentication & Organizations feature, with RLS
-demoted to a design footnote.
+A technology name in a feature or requirement means the entity is misplaced:
+the capability is the entity, the technology is design. Example: the feature
+*"Organization Data Isolation (Postgres RLS)"* became the requirement
+*"Organization Data Isolation"* under Authentication & Organizations, with RLS
+moved down to a design.
 
-Measurable **thresholds** are the exception and are welcome above Design —
-"within 1 second", "± 10% of final fare", "at least every 5 seconds". A
-threshold is an observable outcome, not a mechanism. "Updates every 5 seconds"
-is a requirement/AC statement; "polls an H3 index every 5 seconds" is design.
+**Measurable thresholds are the exception** and are welcome above Design —
+"within 1 second", "± 10% of final fare". They are observable outcomes, not
+mechanisms: "updates every 5 seconds" is a requirement or AC; "polls an H3
+index every 5 seconds" is design.
 
 ### What belongs where — at a glance
 
@@ -89,128 +110,135 @@ is a requirement/AC statement; "polls an H3 index every 5 seconds" is design.
 | Trade-offs / alternatives considered | ✗ | ✗ | ✗ | ✓ | |
 | Definition of done, regressions, blocking tasks | | | | | ✓ |
 
-Each entity may **reference** the level above ("see FEAT-2", "satisfies
-AC-3" — always as a link to the entity, see *Content conventions*); none may
-pre-empt the level below. A requirement that already names
-the algorithm has done Design's job for it — and usually the wrong way.
+An entity may reference the level above, as a link (see *Content conventions
+(all entities)*). None may pre-empt the level below.
 
 ### The one thing that belongs at no level: the implementation itself
 
-Detail descends, but it stops short of the code. **No entity — not even a
-design or a task — contains the implementation code.** Writing that code is
-the work the design and the task exist to commission; an entity that already
-contains it has done the engineer's job for them, badly and without a compiler.
+No entity — not even a design or a task — contains new implementation code.
+The test: **could an engineer paste this into the repository as their
+implementation?** If yes, cut it. Quoting code that **already exists**, cited
+to its file, is welcome in designs and tasks: it shows the pattern to conform
+to, or the thing that has to change.
 
-The test is direction, not syntax: **could an engineer paste this into the
-repository as their implementation?** If yes, it doesn't belong. **Quoting code
-that already exists is a different act and is welcome** at the Design and Task
-levels — it is how a design shows the pattern it is conforming to and how a
-task points at the thing that has to change. So a five-line excerpt of today's
-repository layer, cited to its file, is good authoring; the new handler written
-out ready to paste is not.
-
-Where a contract or a schema needs pinning down precisely, express it as a
-**table** — field, type, description — not as a type declaration, migration or
-request body. That form is readable by the product members of the audience too,
-which is why designs use it (see *Design*).
+Pin down a contract or schema as a **table** (field, type, description), not
+as a type declaration, migration or request body. A table is readable by the
+product readers too.
 
 ## Feature
 
-**What it is.** The root of the chain: a top-level unit of product scope —
-a surface, workflow, or capability a user (or agent) can point at or demo.
-Ride booking, the spec navigator, the MCP server, commenting, GitHub
-integration. Has no parent.
+Also load *Content conventions (all entities)* before writing one.
 
-**Does this belong as a feature?** Ask: *could someone demo it or point at
-it as a thing they can do?* If yes, feature. If it instead reads as a rule
-*within* a capability ("every edit is a new version", "no data leaks across
-orgs"), it's a requirement, not a feature. Two common misfires:
+**What it is.** The root of the chain, with no parent: a unit of product
+scope — a surface, workflow or capability someone can demo or point at.
 
-- **Cross-cutting concern raised as a sibling feature** — versioning, audit,
-  numbering apply to every entity. These are requirements under the core
-  model feature, not features of their own.
-- **A behaviour of an existing surface raised as a new feature** — "create
-  entities from the navigator" is a requirement under the navigator's
-  feature.
+**Readers.** Primarily senior product managers and executives. They should
+grasp the problem, the value and the scope in a minute's read, with no
+technical background.
 
-When genuinely torn between feature and requirement, prefer **requirement**:
-a requirement under a coarse feature is easy to live with; a stray top-level
-feature adds noise until someone cancels it.
+**Feature or requirement?** If it reads as a rule *within* a capability
+("every edit is a new version", "no data leaks across orgs"), it's a
+requirement. Two common misfires:
 
-**How to write a good one.** Frame the problem and the value in product
-language. A strong feature body covers: a one/two-sentence overview of the
-capability and why it matters; goals and explicit non-goals; the primary
-persona(s); scope boundaries (in scope / out of scope); and success metrics
-where they exist. Write for a reader deciding *whether* to build it, not
-*how*.
+- **A cross-cutting concern raised as a sibling feature.** Versioning, audit
+  and numbering apply to every entity; they are requirements under the core
+  model feature.
+- **A behaviour of an existing surface raised as a new feature.** "Create
+  entities from the navigator" is a requirement under the navigator's feature.
 
-**Keep out.** Everything under "detail only descends" — no vendor, library,
-table, algorithm, code, or architecture. Also no Given/When/Then acceptance
-phrasing (that's an AC). A feature that mentions how it's built is doing three
-levels' jobs at once.
+When torn, choose **requirement**: a stray top-level feature is noise until
+someone cancels it.
 
----
+**Projects.** A project (`PROJ-n`) groups features — a release, a programme, a
+customer. It is a facet across the chain, not a level in it: a feature sits in
+any number of projects, or none. File a new feature under the projects the
+user names (`projectRefs` on `createFeature`, or `addFeatureToProject`
+afterwards). Create a project only when asked.
+
+**Structure.** Problem and value in product language, for a reader deciding
+*whether* to build it, not *how*:
+
+- `## Overview` — one or two sentences: the capability and why it matters
+- `## Goals`
+- `## Non-goals`
+- `## Personas` — who uses it, primary first
+- `## Scope` — **In scope:** … / **Out of scope:** …
+- `## Success metrics` — only where they exist
+- `**Sources:**`
+
+**Keep out.** Everything in *The one rule that governs everything: detail only
+descends*, and Given/When/Then phrasing (that's an AC).
 
 ## Requirement
 
-**What it is.** A rule that must hold within exactly one feature. Reads as
-"the rider can request a ride now", "every edit is a new immutable version",
-"no data leaks across organizations". It constrains or specifies its feature
-and can't be demoed on its own.
+Also load *Content conventions (all entities)* before writing one.
 
-**Requirement vs Feature.** If it can't stand alone as a demoable capability
-and instead qualifies one, it's a requirement. See the Feature section's
-misfires — cross-cutting and surface-behaviour items land here.
+**What it is.** A rule that holds within exactly one feature — "the rider can
+request a ride now", "every edit is a new immutable version". It qualifies its
+feature and can't be demoed on its own.
 
-**Requirement vs Acceptance Criteria.** The requirement states the rule in
-prose; the AC is a *specific, testable scenario* that proves it. If what
-you've written has a concrete precondition, a concrete action, and a single
-observable outcome you could write a pass/fail test from, it's an AC, not a
-requirement. "The rider can tip after a trip" is a requirement; "*Given* a
-completed trip within the tipping window, *when* the rider adds a tip, *then*
-the tip is charged as a separate transaction to the default method" is one of
-its ACs.
+**Readers.** Primarily product managers, engineering leadership and
+architects. A product manager must be able to own the rule; an architect must
+be able to design against it without asking what it means.
 
-**How to write a good one.** User stories ("as a rider standing on a corner,
-I want… so that…"), scope in/out, and the behaviour described in product
-terms. Note origin when extracted from another entity ("Formerly tracked as
-feature FEAT-n"). Still no mechanism.
+**Requirement or AC?** If it has a concrete precondition, a concrete action
+and a single observable outcome you could write a pass/fail test from, it's an
+AC. "The rider can tip after a trip" is a requirement; "*given* a completed
+trip within the tipping window, *when* the rider adds a tip, *then* the tip is
+charged as a separate transaction to the default method" is one of its ACs.
 
-**Keep out.** Same prohibitions as a feature. In particular, no code or type
-shapes: if you find yourself pasting an `interface` or an API body to pin
-down "the request shape", stop — that contract is Design. (Seed/demo content
-sometimes carries such shapes to exercise the renderer; don't treat it as a
-model for real authoring.)
+**Structure.**
 
----
+- `## Overview` — the rule in one or two sentences
+- `## User stories` — "As a rider standing on a corner, I want… so that…"
+- `## Behaviour` — the rule in product terms, including its edge behaviour
+- `## Scope` — **In scope:** … / **Out of scope:** …
+- `**Sources:**`
+
+When extracted from another entity, say so at the end of the Overview
+("Formerly tracked as feature FEAT-n").
+
+**Keep out.** Everything in *The one rule that governs everything: detail only
+descends*, and Given/When/Then phrasing. No `interface` or API body to pin
+down "the request shape" — that contract is Design. Seed and demo content
+sometimes carries such shapes; don't copy it.
 
 ## Acceptance Criteria
 
-**What it is.** A single testable condition that defines when its requirement
-is satisfied. One AC = one scenario. The house style is **Given / When /
-Then / Because**: `**Given** <precondition>, **when** <action>, **then**
-<observable outcome>`, and *because* — where the criterion comes from.
-Belongs to exactly one requirement.
+Also load *Acceptance criteria and coverage* for how criteria reach a version.
 
-**AC vs Requirement.** An AC is concrete and verifiable where the requirement
-is general. If you cannot derive a pass/fail test from the sentence — because
-it lacks a specific trigger or a specific observable result — it's still a
-requirement. Measurable thresholds belong here ("within 500 ms", "within 1
-second").
+**What it is.** One testable scenario that proves its requirement, belonging
+to exactly one requirement. A criterion is **structured, not markdown**:
+`createAcceptanceCriterion` takes separate fields, and the app renders them.
 
-**AC vs Design.** An AC states what must be *observable*, never *how* it's
-achieved. "The fare estimate updates within 500 ms" is an AC; "…by swapping
-the carried estimate id locally against an H3 pricing cell" is design. If a
-technique appears, move it down.
+| Field | Holds |
+|---|---|
+| `title` | A short name for the scenario: "Tip on a completed trip", "No payment method on file" |
+| `precondition` | The *given* — the state before the action |
+| `action` | The *when* — what the user or system does |
+| `outcome` | The single observable *then* |
+| `because` | Where the criterion comes from, and the evidence behind it |
 
-**How to write a good one.** Keep each AC atomic — one precondition, one
-action, one outcome. Split any "and also…" into a second AC. Cover the golden
-path *and* the important failure/edge paths as **separate** criteria (valid
-request; no location permission; no payment method; each its own AC). Prefer
-measurable outcomes over adjectives ("within 30 seconds", not "quickly").
+Write each field as plain prose with no "Given" / "When" / "Then" prefix and
+no markdown. Omit `precondition` only when the outcome holds unconditionally.
 
-**Because: where a criterion comes from.** Because is one origin from a fixed
-set, plus any evidence behind it. The origins, by the key the tools take:
+**Readers.** Product owners and quality engineers. A product owner must be
+able to agree it is the right behaviour; a quality engineer must be able to
+write the test from the criterion alone.
+
+**AC vs Design.** State what is observable, never how it's achieved. "The fare
+estimate updates within 500 ms" is an AC; "…by swapping the carried estimate id
+against an H3 pricing cell" is design.
+
+**Write.**
+
+- **Atomic:** one precondition, one action, one outcome. Split any "and
+  also…" into a second AC.
+- **Paths as separate ACs:** the golden path and each important failure or
+  edge path (valid request; no location permission; no payment method).
+- **Measurable over adjectives:** "within 30 seconds", not "quickly".
+
+**Because — origin.** One key from a fixed set:
 
 | Origin | Key | Meaning |
 |---|---|---|
@@ -223,707 +251,476 @@ set, plus any evidence behind it. The origins, by the key the tools take:
 | Negation | `negation` | The opposite case of another criterion |
 
 **Record an origin only when a source states it** — the user, a ticket, a
-document, the code. Set `because.origin` on `createAcceptanceCriterion` or
-`updateAcceptanceCriterion` to its key. When no source names one, omit
-`origin` and the criterion reads **Not stated**. Not stated is the honest
-default, never a gap to fill: don't infer an origin from the criterion's
-wording or guess one to complete the record. Changing a recorded origin
-follows the same rule, and `origin: null` clears one a source has withdrawn.
+document, the code. Otherwise omit it and the criterion reads **Not stated**.
+Never infer an origin from the criterion's wording. The same rule applies to
+changing one; `origin: null` clears an origin a source has withdrawn.
 
-**Record the evidence behind it.** A link is
-`because.addEvidence: [{ kind: "link", url, label? }]`. A file is uploaded
-first — `createAttachmentUpload`, then the command it returns — and attached
-by the upload's `id` as `{ kind: "file", attachmentId }`; never read the file
-into context. Put the origin and its evidence in the same write: the
-criterion's create, or one update. Evidence needs no origin, so a source that
-backs a criterion without saying why it exists is still worth attaching.
-Remove an item with `updateAcceptanceCriterion`'s `because.removeEvidence: [id]`,
-taking the id from the write response that returned it rather than
-re-listing. A criterion holds at most 20 items.
+**Because — evidence.** Back the criterion with links, or with files uploaded
+first (see *Attachments and comments*). Send origin and evidence in the same
+write: the create, or one update. Evidence needs no origin. To remove an item,
+take its id from the write response that returned it.
 
-**Read Because before changing a criterion.** Every criteria read
-(`listAcceptanceCriteria`, `getRequirementCriteria`, and `readDocument`'s
-`criteria` on a requirement) carries `because` on every criterion: `origin`
-as a key or `null` for not stated, and `evidence` as items with an `id`, a
-`url` and a `label`. Before proposing to change or drop a criterion, read
-its Because. An origin outside the team — Regulatory or legal, Contractual —
-means the wording answers to someone the specification doesn't speak for:
-name the origin and its evidence to the user and confirm before proposing the
+**Read Because before changing a criterion.** Every criteria read returns
+`because`. If the origin is **Regulatory or legal** or **Contractual**, the
+wording answers to someone outside the team: name the origin and its evidence
+to the user and confirm before proposing the change. This is your practice,
+not a product rule: Spexd records the origin but doesn't warn on or block a
 change.
-That is your practice, not a product rule; Spexd records the origin and does
-not warn on or block a change.
-
-**Because is part of the draft.** A Because change is a draft edit to the
-requirement, like the criterion's wording, and reaches a version when the
-requirement is published. Write every criterion — Because included — then
-publish the requirement once.
-
-**Keep out.** Mechanism and implementation. Thresholds yes; techniques no.
-
----
 
 ## Design
 
-**What it is.** The first level where implementation lives — a technical
-design/decision that fulfils one or more acceptance criteria. This is where
-architecture, vendors, libraries, data models, algorithms, state machines,
-contracts and trade-offs are not just allowed but expected. It answers *how do
-we build this so the ACs hold?* — while stopping short of writing the code that
-answer commissions.
+Also load *Content conventions (all entities)* before writing one.
 
-This is **architectural design, not merely UX.** A design that only describes
-screens and never the system beneath them — the data model, the transaction
-boundaries, the concurrency and failure handling, the external services — is
-incomplete. Screen layout can be part of a design, but it is never the whole
-of one.
+**What it is.** The first level where implementation lives: the architecture
+that makes one or more ACs hold — vendors, libraries, data models, algorithms,
+state machines, contracts and trade-offs, all expected here. It is
+**architectural, not just UX**: a design that describes screens but not the
+system beneath them is incomplete. It stops short of the code (see *The one
+thing that belongs at no level: the implementation itself*).
 
-**Who reads it.** Two audiences at once: an engineer who will build from it,
-and a product member who will not. That is the reason the mechanism is written
-as prose and tables rather than as code — a data model given as field, type and
-purpose is legible to both, where a migration or a type declaration is legible
-to one. Write so a product reader can follow what the system does and why, and
-an engineer can tell what has to change.
+**Readers.** Primarily architects, but product owners and senior engineers
+must be able to read it too. The architect judges the approach; the product
+owner follows what the system does and why; the senior engineer can tell what
+has to change. That is why a design is prose and tables, not code.
 
-**A design's structural parent is its requirement.** `createDesign` takes a
-`requirementRef`, and the owning feature comes from it. A design fulfils only
-**its own requirement's** acceptance criteria — `addDesignCoverage` rejects a
-criterion owned by any other requirement, and `moveEntity` onto a different
-requirement drops the coverage the design can no longer hold (returned as
-`droppedCoverage`, so you can see what the move cost).
+**Parent and coverage.**
 
-Within that requirement **the AC↔Design link is many-to-many** (the only
-fan-out/fan-in point in the chain). One design can fulfil several of its
-requirement's ACs, and one AC can need several designs (a frontend design *and*
-a backend design each cover part of it). So split designs along **architectural
-seams**, not one-per-AC by reflex. Shared infrastructure serving several
-requirements is a design under each — coverage never crosses a requirement
-boundary.
+- A design's parent is its requirement. It covers only **that requirement's**
+  ACs; moving it to another requirement drops coverage it can no longer hold.
+- Within the requirement, AC↔Design is many-to-many. One design may cover
+  several ACs; one AC may need several designs (a frontend and a backend).
+  Split along **architectural seams**, not one design per AC. Shared
+  infrastructure serving several requirements is a design under each.
+- Reference the ACs it satisfies; don't restate them.
 
-**Design vs the levels above.** If you're naming a technology, drawing an
-architecture diagram, tabulating a data model, or choosing between approaches —
-you're in Design. Reference the ACs you satisfy; don't restate them in full.
+**Design vs Task.** A design describes the **target state** of the
+capability; a task is **a change** that moves the code toward it. Don't
+decompose a design into a work checklist — that's the Task level.
 
-**Design vs Task.** A design *decides* the approach; a task *executes* a
-decision already made. A design describes the **target state of the
-capability**; a task describes **a change** that moves the code toward it. Don't
-decompose a design into a checklist of work here — that's the Task level.
+**Follow the grain of the code.** Read the code that will host the capability
+before writing, and adopt the approach it already takes. If business logic
+lives in the repository layer behind thin controllers, the design puts it
+there — even where a logic-heavy controller would be defensible greenfield.
+Name the modules and layers involved, and quote existing code where it pins
+the pattern down. Still write the target state in the timeless present: not a
+diff, not a migration path from today, not how much is already built. No
+access to the code? See *Without a shell or the repository*.
 
-**Ground it in the code, and follow the grain.** A design is bound by code
-analysis: read the code that will host the capability before writing it, and
-reflect what you find. The point is not only accuracy but **conformance** — a
-design adopts the approach the codebase already takes. If business logic lives
-in the repository layer behind thin controllers, the design puts its logic in
-the repository layer; describing a logic-heavy controller instead is wrong here
-even where it would be defensible in a greenfield codebase. Quote the existing
-code where it pins the pattern down, and name the modules and layers involved.
+**Structure.** Use these headings in this order. Leave out a heading only
+because it doesn't apply, never because nobody thought about it.
 
-Grounding a design in what exists does not turn it into a description of what
-exists. It still states the capability's target state in the timeless present
-(see *Keep out*) — never a diff, a migration path from today, or a note on how
-much of it is already built. Getting there is the Task's job.
+- `## Overview`
+- `## Architecture`
+- `## User interface`
+- `## Data model`
+- `## Contracts`
+- `## Security`
+- `## Configuration`
+- `## Deployment`
+- `## Failure modes`
+- `## Testing`
+- `## Trade-offs and alternatives`
+- `**Sources:**`
 
-**What a good design covers.** Not every design needs every section — one that
-adds no data and no endpoint shouldn't invent them — but a section should be
-absent because it doesn't apply, not because nobody thought about it.
+**Keep out.**
 
-- **The decision and the mechanism.** What is being built and how it works,
-  end to end, in enough detail that an engineer knows what has to change.
-- **Boundaries.** How the functionality splits across the system's seams —
-  services, layers, clients, and **repositories where more than one is
-  involved**. A design spanning three repos says which part lands in each; that
-  split is what its tasks decompose along. Link every repository it touches
-  with `linkEntityRepository` (see *Operational notes*).
-- **Data model.** Every entity it adds or changes, as a table — **field, type,
-  description/purpose** — one row per field. Human-readable types (`uuid`,
-  `timestamp`, `text`, `enum: draft | published`), not a schema dump.
-- **Contracts.** Endpoints, events and interfaces as a table — method and path
-  (or event name), purpose, request fields, response, error cases. Not a
-  request body pasted as JSON.
-- **Security controls.** Authentication and authorization, tenancy isolation,
-  which data is sensitive and how it is protected, what an untrusted caller can
-  and cannot reach.
-- **Configuration controls.** Flags, environment variables and settings the
-  behaviour depends on, their defaults, and who can change them.
-- **Deployment.** Rollout and migration ordering, backwards compatibility,
-  anything that has to ship or be enabled in a particular sequence.
+- **Implementation code** — express shapes as tables.
+- **Build or delivery status** — no "not built", "shipped", "in progress",
+  "landed in wave N", and nothing about what `main` does today. The lifecycle
+  status carries that.
+- **Source-code files in the Sources list** — sources are the documents, ADRs,
+  tickets and links a reader follows for intent. Naming a file in the body to
+  pin a mechanism is fine.
+- **Open questions you never asked** — see *Content conventions (all
+  entities)*. Designs attract these most.
+
+### What a good design covers
+
+- **Overview** — the decision in two or three sentences: what is built, the
+  approach chosen, and the ACs it covers (linked).
+- **Architecture** — the mechanism end to end, so an engineer knows what has
+  to change, and the boundaries: how it splits across services, layers,
+  clients and repositories. A multi-repo design says which part lands in each;
+  its tasks decompose along that split. **Include a mermaid diagram whenever
+  the design touches architecture** (see *Diagrams* below).
+- **User interface** — required for any design with UI (see *UI designs carry
+  their mockups* below).
+- **Data model** — each entity added or changed, as a table: field, type
+  (`uuid`, `timestamp`, `enum: draft | published`), purpose. Not a schema dump.
+- **Contracts** — endpoints, events and interfaces as a table: method and path
+  (or event name), purpose, request fields, response, error cases.
+- **Security** — authentication and authorization, tenancy isolation,
+  sensitive data and its protection, what an untrusted caller can reach.
+- **Configuration** — flags, environment variables and settings, their
+  defaults, and who can change them.
+- **Deployment** — rollout and migration ordering, backwards compatibility,
+  anything that must ship in sequence.
 - **Failure modes** and how each is handled.
-- **Testing.** The areas of testing required to show the **acceptance criteria
-  this design covers** are met — each linked, and each answered with the *kind*
-  and *level* of test that would prove it (unit at this seam, integration
-  across that boundary, an end-to-end path), plus the edge and failure cases
-  that need their own coverage. Not test code, and not a restatement of the AC:
-  the useful sentence names what an assertion would have to fail on if the
-  criterion stopped holding.
-- **Trade-offs and alternatives considered**, and the ADRs and tickets behind
-  them.
-- **A diagram**, where the architecture is easier seen than read. A fenced
-  `mermaid` block in the body is the cheapest route and usually the right one:
-  it renders in the document, and it stays editable and diffable as the design
-  changes, so a later edit is a text change rather than a re-upload. Where the
-  picture doesn't fit what mermaid draws, upload an image with
-  `createAttachmentUpload` (see *Operational notes*) and embed the returned
-  URL. Either beats ASCII art.
+- **Testing** — for each covered AC, linked: the kind and level of test that
+  proves it (unit at this seam, integration across that boundary, end to end),
+  plus edge and failure cases needing their own coverage. Name what an
+  assertion would fail on if the criterion stopped holding. No test code.
+- **Trade-offs and alternatives**, with the ADRs and tickets behind them.
 
-**UI designs carry their mockups.** When a design includes UI — a new screen,
-a changed flow, a component with visible states — the visual design is part of
-the spec, and the design must carry it rather than describe it in prose alone:
+### Diagrams
 
-- **Link the frame.** Wherever a Figma (or other design tool) file exists, link
-  the **specific frame or node** for each screen or state the design covers —
-  a Figma URL with its `node-id`, not the file's top-level link — so an
-  implementer lands on the exact artboard. One link per screen or state,
-  labelled with what it shows.
-- **Embed screenshots.** Where mockups exist, include an image of each one in
-  the body, next to the prose it illustrates. Export it from the design tool
-  (with the Figma MCP, `get_screenshot` on the frame's node), upload it with
-  `createAttachmentUpload` (see *Operational notes*) and embed the returned
-  URL. The screenshot is what a reader sees without leaving Spexd; the frame
-  link is the source of truth an implementer inspects for spacing, tokens and
-  assets. Give both — a screenshot without a link can't be inspected, and a
-  link without a screenshot hides the design from anyone without tool access.
-- **Ask before you write.** When a user has asked you to author a design that
-  includes UI, **ask whether mockups exist** before writing it, in the same
-  batch as your other questions (see *Process*). If they do, get the links. If
-  they don't and you have access to a design tool (a Figma MCP, for instance),
-  **offer to mock the screens up first** — following the product's existing
-  design system — so the design can reference them; author without mockups
-  only if the user declines. Without a design tool, say the design has none and
-  describe layout and states in prose, so the gap is visible rather than
-  silent.
+Every design that touches architecture carries at least one fenced `mermaid`
+diagram in its `## Architecture` section — it renders in the document and stays
+editable as the design changes. Pick the view that shows the decision:
 
-A mockup doesn't replace the rest of the design: the system beneath the screen
-still needs its mechanism, data model and contracts.
+- a **flow diagram** (`flowchart` or `sequenceDiagram`) for how a request,
+  event or process moves through the system;
+- a **component diagram** (a `flowchart` with a `subgraph` per service, layer
+  or repository, or `C4Component`) for how the parts connect.
 
-**Keep out — four things that creep into designs and don't belong.**
+Use both when both matter. Upload an image only for what mermaid can't draw.
+Never ASCII art.
 
-- **The implementation code.** A design commissions code; it doesn't contain
-  it. No handler, migration, type declaration or query written out ready to
-  paste — express the shape as a table instead. Quoting code that *already
-  exists*, cited to its file, is the opposite move and belongs here (see *The
-  one thing that belongs at no level*).
-- **Delivery or build status.** A design describes the intended
-  architecture, not how far it has been built. No "not built", "shipped",
-  "in progress", "landed in wave N", no "Status:" note, and no references to
-  what `main` currently does or doesn't do — the entity's Spexd lifecycle
-  status carries all of that. Write the mechanism in the timeless present, as
-  the design to build to, so it reads the same whether the work is unstarted
-  or long shipped.
-- **Source-code files in the sources list.** Cite sources as the documents,
-  ADRs, tickets, and links a reader navigates to for intent and decisions —
-  not a list of implementation files (`server/…/foo.ts`). A file path is an
-  implementation pointer that goes stale, not a source of the design. (Naming
-  a specific file *inside the body* to pin a mechanism is fine — the
-  prohibition is on the sources list.)
-- **Open questions you never asked.** An "Open questions" section is the
-  easiest place to park a decision instead of making one, and it's designs
-  that attract them. Before any such question goes into the document, **ask
-  the user driving you** — most are answerable in a sentence, and the answer
-  belongs in the design as a decision, not in a list of things nobody
-  decided. Collect them and ask in one batch rather than trickling them out.
-  A question survives into the entity only when the user couldn't resolve it
-  either — then it's a real record of an undecided point, and say whose call
-  it's waiting on. Writing a design "with open questions to follow up" without
-  having put them to the user first is not allowed, however tidy the list looks.
+### UI designs carry their mockups
 
----
+Any design with a new screen, a changed flow, or a component with visible
+states must include its mockups in the `## User interface` section:
+
+- **Link the frame** — the specific Figma frame or node URL (with `node-id`)
+  for each screen or state, labelled with what it shows; not the file's
+  top-level link.
+- **Embed a screenshot** of each mockup beside the prose it illustrates (with
+  the Figma MCP, `get_screenshot` on the node), uploaded per *Attachments and
+  comments*. The screenshot is visible inside Spexd; the link is the source of
+  truth for spacing, tokens and assets. Give both. Without a shell, give the
+  link alone (see *Without a shell or the repository*).
+- **No mockups?** If you have a design tool, offer to mock the screens up
+  first, following the product's design system; author without them only if
+  the user declines. Without a design tool, say the design has none and
+  describe layout and states in prose.
+
+A mockup doesn't replace the mechanism, data model and contracts beneath the
+screen.
 
 ## Task
 
-**What it is.** A concrete unit of implementation work decomposed from
-exactly one design. It answers *what does someone actually do to ship a slice
-of that design?* **Change-level and single-repository**: one reviewable change,
-in one codebase.
+Also load *Content conventions (all entities)* before writing one.
 
-**Task vs Design.** A task never decides architecture — it carries out what
-the design specified. Where the design is the capability's target state, the
-task is the change that moves the code toward it. If, mid-task, you discover the
-approach is wrong or under-specified, update the **design**, don't quietly
-invent new architecture in the task.
+**What it is.** One reviewable change, in **one repository**. A task normally
+delivers one design and takes it as its parent. Attach it directly to a
+requirement or feature only when no design fits — a copy change, a
+configuration tweak, a chore with no architecture to decide. A task never
+decides architecture: if the approach turns out wrong or under-specified
+mid-task, update the **design** rather than inventing architecture in the
+task, and if a task with no design needs architecture, it needs a design.
 
-**One repository, and say which.** Link it with `linkEntityRepository` — a task
-carries **exactly one** repository, and linking a second replaces the first, so
-set it once at creation. A design that spans repositories decomposes into
-tasks along that boundary: one task per repository, never one task reaching
-across two.
+**Readers.** Senior engineers. Assume they know the stack — don't explain the
+language or framework — and be exact about what changes and where.
 
-**Scope it so it can merge.** Size a task so that, once complete, it can be
-merged to `main` on its own **without leaving dead paths behind** — no
-half-wired screen, no route nothing reaches, no flag protecting an unfinished
-journey. If a slice of the design can't be merged safely alone, it is the wrong
-slice: redraw the boundary, or fold it into the task that completes the path.
-This constrains decomposition more than size does — prefer a larger task that
-lands whole over two that leave the UI stranded between them.
+**One repository.** Link exactly one, right after creating it (see
+*Repositories*). A design spanning repositories decomposes into one task per
+repository, never one task across two.
 
-**Blocking comes first.** If a task can't start until other tasks are complete,
-say so on the **first line of the body**, before everything else, so ordering
-is visible without reading the task:
+**Merge-safe scope.** Once complete, a task must merge to `main` on its own
+without leaving dead paths: no half-wired screen, no unreachable route, no flag
+hiding an unfinished journey. If a slice can't merge safely alone, redraw it
+or fold it into the task that completes the path. Prefer one larger task that
+lands whole over two that strand the UI between them.
+
+**Blockers go first.** If the task can't start until others finish, the body
+opens with a `**Depends on:**` line and a bulleted list of the blocking tasks,
+one linked reference per bullet, with its title:
 
 ```markdown
-**Depends on:** [TASK-14](https://acme.spexd.com/e/TASK-14), [TASK-15](https://acme.spexd.com/e/TASK-15)
+**Depends on:**
+
+- [TASK-14](https://acme.spexd.com/e/TASK-14) — Add the ride state machine
+- [TASK-15](https://acme.spexd.com/e/TASK-15) — Expose the fare-estimate endpoint
 ```
 
-Linked references, never bare. Omit the line entirely when nothing blocks the
-task — don't write "Depends on: none". This is a prose convention: a task has no
-dependency field, and it is unrelated to `listInbox`'s `blocked` view, which
-means *invalidated by an upstream publish*, not *waiting on a sibling task*.
+Omit it when nothing blocks — never "Depends on: none". It is a prose
+convention: there is no dependency field, and `listInbox`'s `blocked` view
+means *invalidated by an upstream publish*, not *waiting on a sibling*.
 
-**How to write a good one.** An imperative title ("Implement the ride-request
-endpoint"). Like its design, a task is **bound by the code**: read what is
-there and be explicit about how it has to change. The bar is that an engineer
-can start from the task and its design without further analysis beyond
-verifying and understanding the existing code. Cover:
+**Structure.** An imperative title ("Implement the ride-request endpoint").
+Read the code first: an engineer should be able to start from the task and its
+design with no analysis beyond verifying the existing code. **Always open with
+a high-level overview before any detail.**
 
-- **What changes** — the modules, layers and files that have to change, and in
-  what way. Quote the existing code where it makes the change unambiguous.
-- **What good looks like** — the behaviour once the change lands, tied to the
-  acceptance criteria it serves.
-- **What tests should exist** — the tests to add or extend, and what each has
-  to assert. The design names the areas of testing; the task names the tests.
-- **Regressions to cover** — existing behaviour this change could break, and
-  what must keep passing. Call these out explicitly rather than trusting the
-  suite to notice.
-- **What finished looks like** — the definition of done and a subtask
-  checklist, including the merge-safety condition above.
-- **References** — the design it implements, as a link ("per [DES-9](…) —
-  *Ride request creation & state machine*"), and the acceptance criteria it
-  contributes to, linked in the `[AC-3](…/e/REQ-4?ac=AC-3)` form. Reference
-  them; don't restate them in full.
-- **Mockups, for any UI change.** When the task changes UI and its parent
-  design carries mockups, the task references **the specific ones** it
-  implements — each frame link (and its screenshot, re-embedded from the
-  design's attachment URL) for the screens and states this task touches, not
-  a pointer to the design's mockups in general. Then instruct the implementer
-  plainly: *build to these mockups as closely as possible; don't invent new
-  layouts, components or copy, and don't depart from the mockups without
-  asking.* Where the mockups don't cover something the task needs — an empty
-  state, an error message, a breakpoint — say so in the task, so the gap is
-  known before work starts rather than improvised during it.
+- `**Depends on:**` and its bulleted list — only when blocked
+- `## Overview`
+- `## What changes`
+- `## What good looks like`
+- `## Tests`
+- `## Regressions`
+- `## Mockups` — UI changes only
+- `## Done`
+- `**Sources:**`
 
-**Keep out.** Don't re-argue the design; reference it. Don't introduce
-architecture that isn't already in the design. And **no implementation code** —
-quoting what exists to show what has to change is right; writing out the code
-the task exists to commission is not.
+What each covers:
 
----
+- **Overview** — two or three sentences a reader could stop after: what the
+  change does and why, the design it implements ("per [DES-9](…) — *Ride
+  request creation & state machine*") and the ACs it contributes to, linked.
+  Don't restate them.
+- **What changes** — the modules, layers and files, and how each changes.
+  Quote existing code where it removes ambiguity.
+- **What good looks like** — the behaviour once it lands, tied to the ACs it
+  serves.
+- **Tests** — which to add or extend, and what each asserts. The design names
+  areas of testing; the task names the tests.
+- **Regressions** — existing behaviour this could break, and what must keep
+  passing.
+- **Mockups, for UI changes** — the specific frame links and screenshots
+  (re-embedding the design's attachment URLs) for the screens and states this
+  task touches. Instruct the implementer: *build to these mockups as closely as
+  possible; don't invent layouts, components or copy, and don't depart from
+  them without asking.* Name anything the mockups don't cover (an empty state,
+  an error message, a breakpoint).
+- **Done** — the definition of done and a subtask checklist, including merge
+  safety.
+
+**Keep out.** Re-arguing the design, architecture the design doesn't contain,
+and new implementation code.
 
 ## Content conventions (all entities)
 
-- **Don't repeat the title in the body.** The title is a separate field in
-  Spexd, shown above the content — starting the body with an `# <Title>`
-  heading just duplicates it. Begin the body with the content itself and close
-  it with the sources list (below). A task with blockers adds one thing at the
-  top: its `**Depends on:**` line comes first, above the content.
-- **Don't indicate status in the content.** An entity's state lives in its
-  Spexd lifecycle status field (managed via `transitionEntityStatuses`), not in
-  the body — no "Status:" line, no "shipped / planned / rejected" labels in the
-  prose. Describe what the entity *is*, not what state it's in.
-- **Resolve open questions with the user before writing them down.** This
-  bites hardest in designs (see *Design → Keep out*) but holds for every
-  entity: an unanswered question in an entity's body is a decision you didn't
-  make and didn't ask about. Put it to the user first; only what they also
-  couldn't settle stays in the document as an open question.
-- **Cite sources at the end, as a linked list.** Close the body with a
-  `**Sources:**` list — one bullet per source, each a markdown link so a reader
-  can navigate straight to it: Linear URLs for tickets, page URLs for external
-  docs, GitHub links for files such as ADRs. Lead with the content, not the
-  citations; quote key phrases in the body where they capture intent.
-
-  For a file in a repository, link a **GitHub permalink at the current commit**
-  rather than a bare path, so the link keeps pointing at the content you read
-  even after the file moves or changes. Infer it from the checkout:
-  `git remote get-url origin` gives the owner and repo, `git rev-parse HEAD`
-  the full commit hash, and the path is relative to the repository root —
-  `https://github.com/<owner>/<repo>/blob/<commit>/<path>`, with `#L<start>-L<end>`
-  appended to pin a line range. Fall back to the repo-relative path in
-  backticks only when no link can be inferred (no GitHub remote, or a file not
-  yet committed), and never invent a URL you can't derive.
+- **Write for the level's readers, as human-readably as possible.** Each
+  entity section names its readers; check every draft against them. When a
+  passage is a close call, ask which of those readers it loses, and rewrite
+  it until none are lost.
+- **No title in the body.** The title is its own field. Start with the content
+  — or, for a blocked task, its `**Depends on:**` list.
+- **No status in the body.** No "Status:" line and no "shipped / planned /
+  rejected" labels. State lives in the lifecycle status.
+- **Ask open questions; don't park them.** Before any open question goes into
+  an entity, put it to the user — in one batch, not trickled out. The answer
+  goes in as a decision. Only a question the user also couldn't settle stays,
+  saying whose call it waits on. Writing an entity "with open questions to
+  follow up" without asking first is not allowed.
+- **Close with linked sources.** End the body with a `**Sources:**` list, one
+  markdown link per source: the ticket's URL in its tracker, the page URL for
+  an external reference. Quote key phrases in the body where they capture
+  intent. Never invent a URL.
 
   ```markdown
   **Sources:**
 
   - [ENG-123 — Riders can schedule pickups](https://linear.app/acme/issue/ENG-123)
   - [ADR-007 — Ride state machine](https://github.com/acme/rides/blob/3f9c2e1a7b4d8e6f0a1b2c3d4e5f6a7b8c9d0e1f/docs/adr/007-ride-state-machine.md)
-  - [Stripe Connect — destination charges](https://docs.stripe.com/connect/destination-charges)
-  ```
-- **Always link a cross-reference, never leave it bare.** Whenever you name
-  another entity — in an entity's body, in a comment, or in what you report
-  back to the user — write it as a markdown link to that entity's `viewUrl`,
-  not as plain text:
-
-  ```markdown
-  satisfies [DES-9](https://acme.spexd.com/e/DES-9)
   ```
 
-  **An entity's address is its bare reference under `/e/`**, not a positional
-  path: a reference is org-unique, so `/e/DES-9` locates it and the navigator
-  derives the ancestors itself. The older positional form
-  (`/feature/FEAT-3/REQ-7/DES-9`) still redirects, but don't write new links in
-  it.
-
-  **The host is your organization's own subdomain** (`acme.spexd.com` in these
-  examples), so never compose one: a link on `spexd.com` or `www.spexd.com`
-  opens no organization.
-
-  `getEntity` / `getEntities`, `readDocument`, `listFeatures`,
-  `listDescendants`, `searchEntities`, `listInbox`, `resolveEntityReferences`
-  and `resolveGitHubBranch` all return `viewUrl` alongside the reference — take
-  the URL from the response rather than composing one yourself, and if you
-  don't have it, read the entity rather than guessing. One tool doesn't return
-  one: `getOutstandingWorkForEntity`, whose items are addressed by their own
-  `reference` like anything else. Those items also carry an optional `path`
-  array of the ancestor chain; it is dropped when an ancestor link is broken,
-  so read its absence as "this row's chain is broken" rather than as the
-  address being unavailable.
-
-  An acceptance criterion is the one exception: its reference is numbered
-  within its requirement, so `AC-3` is not addressable on its own and is
-  linked as a query on its requirement's URL —
-  `[AC-3](https://acme.spexd.com/e/REQ-4?ac=AC-3)`.
-
-  A bare `AC-3` or `DES-9` makes the reader go and find it. Link it.
-- **For features and requirements**, a useful body shape is: `## Overview`
-  (one or two sentences, product language) → behaviour/scope in product terms.
-  Keep the mechanism out entirely rather than giving it a section — the "how"
-  belongs in the Design entities the chain links automatically, not in a
-  footnote on the feature or requirement. ACs are usually a single
-  Given/When/Then line; designs are full technical documents written for
-  engineers and product readers alike; tasks state what changes, what good
-  looks like, what tests should exist and what finished looks like.
-- **Express structure as tables, not as code.** Data models, endpoint and event
-  contracts, configuration and permission matrices all read better — and to a
-  wider audience — as a table with a row per field and a plain-language
-  description than as a schema, type or payload. See *The one thing that
-  belongs at no level*.
-- **Short, direct sentences, one point each.** A sentence carrying clauses
-  inside clauses is split into the sentences it was hiding. What fails is a
-  point the reader has to dig out of a subordinate clause, not a sentence over
-  some word count — prose chopped to hit a number is no easier to act on.
-- **Reach for jargon, an acronym or an obscure phrase only where no common
-  word says the same thing.** Where one does, use it: "every 5 seconds", not
-  "at a 5s cadence"; "read", not "consume".
-- **A technical term has to do work.** It earns its place where it says
-  something no plain word says — a bar, not a ban, since a design cannot be
-  written without technical terms and stripping a needed one is its own
-  failure. What fails is stacking: terms piled up for effect, which reads as
-  precision and carries less than the sentence it replaced.
-- **Stop when your level's question is answered.** The table at the top of
-  this file gives each level its question. A body that has answered its own
-  has finished, and carrying on means reaching for material the level below
-  owns. This repeats *detail only descends* on purpose, because the two fire
-  at different moments: the placement rule decides where a piece of content
-  goes as you classify it, and this one is a length check at the end of a
-  draft, which is where over-writing happens.
-- **Cut padding, hedging and restatement before the entity is written.**
-  Padding is a sentence making no claim; hedging is a verb qualified until no
-  reader could act on it ("should generally be considered"); restatement is
-  the same point made again in different words. All three are named because
-  restatement in particular is near-invisible in your own draft. This is a
-  pass over each draft rather than a quality a body either has or lacks —
-  *Process* runs it.
-- **Where one of these is a close call, the two-audience test settles it.**
-  *Design → Who reads it* states it, and states it there because Design is the
-  level carrying both readers at once. It is the rule here that names its
-  readers rather than a property of the prose, which is what makes a close
-  call answerable: ask which reader the passage loses. Above Design only the
-  product reader applies — a feature written so an engineer can tell what to
-  change has broken *detail only descends*.
+- **Link repository files as permalinks** to a commit the remote has, so the
+  link resolves for every reader:
+  `https://github.com/<owner>/<repo>/blob/<commit>/<path>`, optionally with
+  `#L<start>-L<end>` for a line range. Take owner and repo from
+  `git remote get-url origin`. Use `git rev-parse HEAD` only if
+  `git branch -r --contains HEAD` lists a branch; otherwise use
+  `git merge-base HEAD origin/<default-branch>`, provided the file exists at
+  that commit. Fall back to the path in backticks when no link resolves, or
+  when you have no shell (see *Without a shell or the repository*).
+- **Link every entity reference** — in bodies, comments and what you report to
+  the user — to its `viewUrl`: `[DES-9](https://acme.spexd.com/e/DES-9)`.
+  - Take `viewUrl` from a tool response (`getEntity`, `readDocument`,
+    `listDescendants`, `searchEntities`, `listInbox`, …). Never compose one:
+    the host is the organization's own subdomain, and a link on `spexd.com`
+    opens nothing. If you don't have it, read the entity.
+  - The address is `/e/<REF>`. Don't write the older positional form
+    (`/feature/FEAT-3/REQ-7/DES-9`).
+  - An AC links as a query on its requirement:
+    `[AC-3](https://acme.spexd.com/e/REQ-4?ac=AC-3)`.
+  - `getOutstandingWorkForEntity` items carry no `viewUrl`. Their optional
+    `path` is missing when an ancestor link is broken.
+- **Follow the entity's structure.** Each entity section gives its headings
+  in order, and every body opens with `## Overview` (a blocked task puts its
+  `**Depends on:**` list first; an AC has no body). Leave out a heading that
+  doesn't apply rather than writing "N/A". Features and requirements have no
+  mechanism section at all.
+- **Structure as tables, not code** — data models, contracts, configuration
+  and permission matrices.
+- **Plain, direct prose.** One point per sentence. Use the common word where
+  one exists ("every 5 seconds", not "at a 5s cadence"; "read", not
+  "consume"). A technical term must say something no plain word does — but
+  don't strip a term the content needs.
+- **Stop when your level's question is answered** (the level table in *Start
+  here*). Carrying on means writing the level below's content.
+- **Cut padding, hedging and restatement** from each draft before the call
+  that writes it.
+- **Finish by publishing, and report each publish.** An edit isn't done until
+  its document is published. See *Publishing* for the review and the report.
 
 ## Operational notes (MCP surface)
 
-- **`readDocument` is the only way to get a body at all.** Every other tool —
-  `getEntity`, `getEntities`, `listDescendants`, the `create*` tools, the publish
-  and transition responses — is **content-free**: it carries the entity's
-  metadata (type, status, owning feature, `viewUrl`, ancestors) and never its
-  document. So don't reach for `getEntity` to "read" an entity; it tells you
-  where a thing sits, not what it says.
-  - It reads the **live draft** by default, unpublished edits included, which
-    is what you want before editing. Pass `version` to read the record
-    instead: `"latest-published"`, or a version number.
-  - It **batches 1–10 references**, and every entry carries a whole body — so
-    name the few documents you actually need rather than sweeping a subtree.
-  - It is the one document tool allowed on a frozen (`LOCKED` / `COMPLETED` /
-    `CANCELLED`) entity; `searchDocument`, `editDocument` and publishing are
-    all refused there. Treat what you read as reference material.
-  - It also returns `commentThreads` — every open and resolved thread, each
-    with its `threadId`, status, anchored text and a `location.handle` you can
-    pass straight to an `editDocument` op's `target.handle` without searching.
-- **Editing is targeted and batched, not whole-document.** Entities are
-  edited through the live-document tools, never by submitting a full body.
-  Read first, then send **every** change for that document as a single
-  `editDocument` call carrying an ordered `ops` array (1–50). Explicitly *not*
-  one call per change. Your edits appear live to anyone editing the entity and
-  merge with their concurrent changes.
-  - **Target by text first.** An op names where it acts with `target.find`:
-    the exact text to act on, which must occur **exactly once** in the
-    document — include surrounding words when a short phrase repeats.
-  - **`searchDocument` is the fallback, not a step in the chain.** It returns
-    match handles for `target.handle`, which is *required* for anything with
-    no text to match — an image, an attachment, a horizontal rule, an
-    `@`-mention, a `#`-entity-reference, an empty bullet or table cell — and
-    for any target you can't name uniquely as text. A stale handle (what it
-    anchored changed under you) is rejected: re-run `searchDocument` and retry.
-  - **Ops apply in order**, each seeing the result of the ones before it, so
-    a later op can act on text an earlier op inserted.
-  - **All-or-nothing.** If any op fails, the whole batch is rejected and the
-    document is left untouched, with the error naming the op and why — fix
-    that op and resend. Collaborators see the batch land as one change.
-  - **Per-op shapes that are easy to get wrong:** `insert` takes either a
-    `target` or `at: doc_start | doc_end` (mutually exclusive), plus
-    `placement: before | after`; `replace` content must be a **single
-    paragraph of inline markdown** — block content is rejected, so
-    restructuring blocks is a `delete` op *plus* an `insert` op; `delete`
-    takes an optional `through` second target to remove a range.
-- **Publishing is two calls, and the first one writes nothing.** When the
-  edits are complete, `publishDocument` (one generic tool for every kind —
-  addressed by `reference` alone, like `readDocument`)
-  **proposes** the publish: it returns the cascade the publish would perform
-  — every approved descendant it would reach, what it would do to each and
-  why — plus a single-use token valid for one hour. `confirmPublish({ token })`
-  is the call that actually writes the new immutable version and applies
-  those invalidations, in one transaction. It is **always two calls**, even
-  when the proposal invalidates nothing. Don't publish after every micro-edit:
-  finish a coherent set of changes, then publish once.
-- **Always finish by publishing — never leave authored content in the live
-  draft.** Once a coherent set of edits to an entity is done, propose and
-  confirm the publish. An unpublished draft is invisible to everything that
-  reads the record (the published version, search, the cascade, reviews and
-  implementers), so the work isn't finished until it lands. That holds for edits the user asked for, even
-  when the proposal would invalidate an approved entity or its approved
-  descendants: invalidation is the intended consequence of changing approved
-  spec, not a reason to hold the change back. Review the outcome set (below),
-  confirm, then **report what was invalidated** — see *Reporting a publish*.
-  The only reasons to stop short are a stale or failing confirm you must
-  re-propose, or an edit the user told you not to publish; say so explicitly
-  rather than leaving a draft behind silently.
-- **Not confirming is cancelling.** Let the token expire and nothing was
-  written — there is nothing to discard and no cancel tool. That is a way to
-  abandon a proposal you reviewed and found wrong (and then fix the draft and
-  re-propose), not a way to park finished content.
-- **`baseVersion` is advisory.** Still required on the propose, and still the
-  published head from `readDocument`, but it records what you edited against
-  rather than gating the write — the publish targets the current head. The
-  staleness contract lives on the *confirm*, which is rejected if the entity
-  or any assessed descendant moved since you proposed; the fix is to
-  re-propose (the same contract as a stale `searchDocument` handle).
-- **Review the outcome set before confirming.** The confirm applies the
-  proposed outcomes exactly as you reviewed them — the assessment is *not*
-  re-run, which is what makes reviewing it meaningful. Read what each
-  descendant got, and don't flatten the distinctions:
-  - `not_assessed` — assessment was unavailable, so it is invalidated by
-    default. Relevance was never established; this is not a judgement that
-    your change affects it.
-  - `invalidated` — judged to be affected by the change.
-  - `pruned` — settled behind a spared ancestor, not a judgement of its own.
-- **`skipAssessment` is the choice you have; overruling a sparing is not.**
-  Passing `skipAssessment` on the propose skips the relevance pass and
-  proposes **every** reached descendant for invalidation — the conservative,
-  blanket outcome. It can only widen the blast radius, never narrow it.
-  There is no `invalidateAnyway` tool and `confirmPublish` takes no
-  overrides: invalidating something the assessment spared is **human-only**.
-  If you disagree with a sparing, leave it in place and say so.
-- **Reporting a publish.** After `confirmPublish`, tell the user what the
-  publish did, so they can address the knock-on work. List **every entity the
-  confirm invalidated** (from the cascade's outcomes — the ones it actually
-  applied, including the published entity's own status if it moved), each as
-  a markdown link on its reference (`viewUrl`) with its title and the reason
-  the outcome gave, grouped by kind. Name `not_assessed` ones as such — they
-  were invalidated by default, not judged affected — and say which descendants
-  were spared. If nothing was invalidated, say that in one line. Don't fix
-  them yourself or re-approve anything: approval is human-only, and what an
-  invalidated entity needs (re-review, an edit, cancellation) is the user's
-  call.
-- **Acceptance-criterion writes are draft edits, not publishes.**
-  `createAcceptanceCriterion` / `updateAcceptanceCriterion` /
-  `deleteAcceptanceCriterion` each write in **one call**, with no proposal and
-  no `confirmPublish` to follow. A criterion lives in its requirement's
-  document, so the write edits that requirement's draft: it rolls no version,
-  cascades to nothing and invalidates no approval. A create answers with the
-  criterion it wrote, numbered `AC-n` — read the new reference from that
-  response; don't re-list the requirement's criteria and match on title. A
-  frozen requirement refuses the write with a 409. The create and the update
-  also carry a criterion's `because` (origin and evidence, *Acceptance
-  Criteria*), where an upload's `id` attaches a file as evidence.
-  - **The criteria reach a version when the requirement is published.** Write
-    all of them first, then publish the requirement once (`publishDocument`,
-    then `confirmPublish`). That version carries the body and the criteria as
-    one change, and its cascade is where anything approved against the
-    requirement can be invalidated. Don't publish after each criterion.
-  - **Until then, a new or changed criterion is a draft.**
-    `listAcceptanceCriteria` and `getRequirementCriteria` answer the
-    **published** set, and design coverage (`createDesign`'s
-    `acceptanceCriteriaRefs`, `addDesignCoverage`, `replaceDesignCoverage`)
-    accepts only a published criterion — naming a draft one is refused with a
-    404. `readDocument` on the requirement returns the draft's criteria in its
-    `criteria` field.
-- **Design coverage is a separate, cheap write.** Which ACs a design fulfils
-  is *not* part of its document and does not roll a version or move it in the
-  chain. Set it at creation with `createDesign`'s `acceptanceCriteriaRefs`, or
-  afterwards with `addDesignCoverage` / `removeDesignCoverage` (one criterion
-  at a time, idempotent) or `replaceDesignCoverage` (the whole set at once; an
-  empty array clears it). Read it back with `getDesignCoverage`. Because a
-  criterion's `AC-n` is numbered within its requirement, every one of these
-  names the criterion as `requirementRef` + `criterionRef`, never `AC-3`
-  alone — and the requirement must be the design's own.
-- **Two views answer "is this covered?"** — `listAcceptanceCriteria` on a
-  requirement returns each criterion with `fulfilledBy` (the designs that
-  fulfil it), and `listDesignsForRequirement` gives the same relation from the
-  other side, deduplicated. Use the first to find an AC with no design.
-- **Set the repository on every design and task.** Where the work lives is a
-  field, not a sentence in the body. `listGitHubConnections` lists the
-  repositories connected to the org; `linkEntityRepository` attaches one by its
-  `owner/name` (the `fullName` that listing shows), which you can carry across
-  turns and hand-offs where an opaque numeric id gets lost;
-  `listEntityRepositories` reads back what an entity carries.
-  The cardinality mirrors the levels: **entities above a task accumulate any
-  number of repositories** — so a design that spans repos links each one it
-  touches — while **a task carries exactly one**, and linking another
-  *replaces* it rather than adding. Set it as you create the entity; a
-  design or task with no repository leaves an implementer guessing which
-  codebase to open. Features and requirements may carry them too, but for those
-  it's optional context rather than part of the spec.
-- **Renaming**: pass the optional `title` on the `publishDocument` *propose*
-  call — not on the confirm — to rename an entity alongside publishing.
-- **Status transitions are a batch.** `transitionEntityStatuses` moves a
-  **set** of entities through the lifecycle (e.g. `DRAFT → READY_FOR_REVIEW`,
-  `DRAFT → CANCELLED`) — one tool for every kind, taking 1–25
-  `{ reference, targetStatus }` pairs, each addressed by the bare reference.
-  There is no singular `transitionEntityStatus`; raising ten drafts for review
-  is one call, not ten. Every subject is decided on its own against the state
-  machine: those that move come back under `transitioned`, and each one the
-  machine refuses comes back under `failed` with its reason — so **check
-  `failed`**, an illegal move doesn't fail the call or discard the legal moves
-  batched with it. (A malformed reference, or the same reference twice, does
-  reject the whole call before anything is written.) Only legal manual
-  transitions are accepted; illegal moves and system-driven statuses are
-  rejected, and **approving is human-only** — an agent can never move anything
-  to `APPROVED`.
-- **"Deleting" = cancelling, and it cascades.** There is no hard delete;
-  transition the entity to `CANCELLED` to retire it. Cancelling is a
-  soft-delete — the entity is hidden from the app UI but API and MCP reads
-  still return it — and it **carries its descendants down with it**, returned
-  as `cancelledDescendants` on the transition. Cancelling a feature therefore
-  retires its whole subtree; check what you're about to take with you.
-- **Terminal statuses are one-way and freezing.** `CANCELLED` and
-  `COMPLETED` have no outgoing transitions, and they freeze content *and*
-  title — publish is rejected once there. So when retiring an entity,
-  **finish every edit first, transition last**:
-  1. Move any content worth keeping to its new home (and update
-     cross-references in other entities).
-  2. Edit the retiring entity's draft down to its final content (e.g. a
-     short pointer to where the content moved) via the document tools, then
-     publish it — the final `title` goes on the `publishDocument` propose,
-     and `confirmPublish` is what lands both the content and the rename.
-  3. Transition it to `CANCELLED`.
-  Cancelling before step 2 has *fully* completed — the confirm included, not
-  just the propose — makes those edits permanently impossible.
-- References are server-generated; never invent or assume the next number —
-  read it from the create response.
-- **Diagrams render from a fenced `mermaid` block**, so a diagram usually needs
-  no upload at all — write it inline and it renders in the document, where it
-  stays editable by a later `editDocument` op instead of needing a fresh image.
-  Reach for an attachment only for a picture mermaid can't draw.
-- **Images and attachments are a two-step upload.** `createAttachmentUpload`
-  does **not** transfer the file: compute the size and SHA-256 locally, call it
-  to mint a one-shot ticket, then POST the bytes yourself with the `curl`
-  command it hands back — never read the file into context or inline it as
-  base64. Embed the returned absolute URL in the markdown (`![alt](url)` for an
-  image, `[label](url)` otherwise). Tickets are single-use; mint a fresh one to
-  retry. The upload also returns an `id`, which attaches the file as a
-  criterion's evidence (`because.addEvidence: [{ kind: "file", attachmentId }]`).
-- **Comments are how you talk about an entity without editing it.** Start a
-  thread with `createCommentThread` — anchored by `quotedText` (an exact span
-  occurring exactly once) or document-level when omitted — and reply with
-  `addComment`. Read them with `listCommentThreads`, or fetch just the ones you
-  care about by id with `getCommentThreads` (the `threadId`s come from
-  `readDocument`, which already tells you each thread's status and location, so
-  settled threads need never be fetched). Comments never change content and are
-  accepted on an entity in any status. **Resolve a thread with
-  `resolveCommentThread` only after replying in it** with how its point was
-  addressed — reply first, then resolve. A bare resolve leaves a person unable
-  to tell whether the point was settled or dismissed. Resolving removes
-  nothing: every message stays readable, and a person can reopen the thread.
-  Resolve only a thread whose point you addressed; a question you raised for a
-  person is theirs to settle. **Never reopen or delete a thread** — overturning
-  a closure or removing a discussion is a person's call, with no exception.
-- **The record is readable.** `listVersions` gives an entity's timeline newest
-  first — published versions interleaved with status transitions, approval
-  decisions and approval retirements, each entry tagged with its `kind`, and
-  each version carrying a `precis` of what it changed. It is **cursor**-paged:
-  pass back the `nextCursor`, never compose one. `compareVersions` answers what
-  changed between two published versions directly, so you never read both and
-  diff them yourself.
-- **Inline `:entityRef{reference=REQ-31}` directives** in a body you read back
-  are cross-references whose labels resolve at read time. Batch them through
-  `resolveEntityReferences` to get their current title, status and `viewUrl` —
-  a renamed entity needs no edit to the documents referencing it.
+The tool descriptions give each call's arguments. These notes cover what they
+leave to your judgement.
+
+### Reading
+
+- `readDocument` is the only tool that returns a body; every other response is
+  metadata. It reads the live draft, collaborators' unpublished edits
+  included. Name only the references you need.
+- Find things with `searchEntities` (typo-tolerant, filterable by type, status
+  and feature) and `listDescendants(ref, { maxDepth: -1 })` for a whole
+  subtree. ACs aren't a chain level — use `listAcceptanceCriteria`. A
+  project's features: `listProjectFeatures`.
+- `listVersions` is the timeline of versions, status transitions and approval
+  events; `compareVersions` diffs two published versions for you.
+- `:entityRef{reference=REQ-31}` directives in a body resolve to current
+  title, status and `viewUrl` via `resolveEntityReferences`.
+
+### Editing
+
+- Read the document first, then send **every** change to it as one
+  `editDocument` call — never one call per change. The batch is
+  all-or-nothing; on failure, fix the op the error names and resend.
+- Target by unique text (`target.find`). Use a `target.handle` from
+  `searchDocument` only for what has no unique text: images, attachments,
+  rules, mentions, entity references, empty bullets or cells.
+- Read the response's `after` excerpts and `warnings` instead of re-reading
+  the document. Expected excerpts and no warnings need no verifying read.
+- A frozen (`LOCKED` / `COMPLETED` / `CANCELLED`) entity can be read but not
+  edited or published — except inside a proposal (see *Proposals*).
+
+### Publishing
+
+- Publishing is always two calls: `publishDocument` proposes and writes
+  nothing; `confirmPublish` writes. Publish once per coherent set of edits. To
+  rename, pass `title` on the propose.
+- **Always finish by publishing.** An unpublished draft is invisible to
+  search, reviews and implementers. This holds even when the publish
+  invalidates approved entities — that is the intended consequence. Stop short
+  only for a stale confirm (re-propose) or when the user said not to publish,
+  and say so.
+- **Review outcomes before confirming** — the confirm applies them exactly as
+  proposed. `invalidated`: an approved entity judged affected.
+  `not_assessed`: invalidated by default, relevance never established.
+  `flagged`: a work-in-progress descendant judged affected (or undetermined);
+  its status is untouched and its authors get a comment. `pruned`: settled
+  behind a spared ancestor.
+- `skipAssessment` only widens invalidation. Invalidating something the
+  assessment spared is human-only; if you disagree, say so.
+- **Report every publish.** List each entity the confirm invalidated or
+  flagged — including the published entity's own status, if it moved —
+  grouped by kind, as a linked reference with its title and the outcome's
+  reason. Mark `not_assessed` ones as such and name what was spared. If
+  nothing was affected, say so in one line. Don't fix or re-approve them —
+  that is the user's call.
+
+### Acceptance criteria and coverage
+
+- Creating, updating or deleting a criterion is one call that edits the
+  requirement's draft: no publish, no version, no cascade. Read the new `AC-n`
+  from the create response.
+- Criteria reach a version when the **requirement** is published. Write them
+  all, then publish once. Until then they are drafts: published-set reads
+  (`listAcceptanceCriteria`, `getRequirementCriteria`) don't show them, design
+  coverage refuses them, and `readDocument` on the requirement does show them.
+- Coverage is separate from the design's document and rolls no version. Set
+  it with `acceptanceCriteriaRefs` on `createDesign`, then adjust with
+  `addDesignCoverage`, `removeDesignCoverage` or `replaceDesignCoverage`.
+- Find an uncovered AC from `listAcceptanceCriteria`'s `fulfilledBy`;
+  `listDesignsForRequirement` is the same relation from the design side.
+
+### Repositories
+
+- Link repositories right after creating a design or task:
+  `listGitHubConnections` lists the org's repositories, `linkEntityRepository`
+  attaches one by `owner/name`, `listEntityRepositories` reads them back.
+- A design links **every** repository it touches. A task carries **exactly
+  one** — linking another replaces it. Features and requirements may carry
+  repositories as optional context.
+
+### Status, cancelling and references
+
+- `transitionEntityStatuses` batches moves, and an illegal move doesn't stop
+  the legal ones — so **check `failed`**. **Never move anything to
+  `APPROVED`**: approval is human-only.
+- There is no delete: transition to `CANCELLED`. It is a soft delete — hidden
+  in the app, still returned by reads — that **cascades to every descendant**,
+  so check what you take with it. A cancelled parent takes no new children.
+- `CANCELLED` and `COMPLETED` are terminal and freeze content and title. To
+  retire an entity: (1) move content worth keeping and fix cross-references;
+  (2) edit it down to a pointer and publish it — propose *and* confirm, with
+  any final `title`; (3) only then cancel.
+- References are server-generated. Read them from create responses; never
+  guess the next number.
+
+### Attachments and comments
+
+- An upload never passes through your context: compute the file's size and
+  SHA-256 locally, get a ticket from `createAttachmentUpload`, and send the
+  bytes with the `curl` command its description gives. Never read the file or
+  inline it as base64. Embed the returned URL (`![alt](url)` or
+  `[label](url)`); its `id` attaches the file as AC evidence. Mint a fresh
+  ticket to retry. Without a shell, see *Without a shell or the repository*.
+- Comments work in any status and never change content. Start a thread with
+  `createCommentThread` and reply with `addComment`.
+- **Reply before resolving**, saying how the point was addressed. Resolve
+  only threads whose point you addressed — a question you raised is the
+  person's to settle. **Never reopen or delete a thread.**
+
+### Proposals
+
+A proposal (`PROP-n`) stages changes to a set of entities apart from the
+primary tree until it merges. Every write and publish tool takes an optional
+`proposal`.
+
+- When the user names a proposal, pass it on every write, publish and
+  transition for that work. Its changes stay invisible outside the proposal
+  until it merges.
+- A proposal is the only way to change an entity implementation has frozen.
+  If a frozen entity needs changing and no proposal has been named, ask the
+  user for one rather than working around the freeze.
+- Publishing inside a proposal can pull approved entities outside it into the
+  proposal (listed under `toStage`); report those with the rest of the
+  publish.
+
+### Without a shell or the repository
+
+Some hosts load this skill with no shell and no checkout. Do what you can and
+say what you skipped:
+
+- **Reading the code** before a design or task: use a code-hosting tool if you
+  have one; otherwise ask the user for the relevant files. If you write
+  without reading the code, say so to the user.
+- **Permalinks:** write the repository path in backticks, prefixed with
+  `owner/repo` when you know it.
+- **Uploads and screenshots:** you can't send the bytes. Link the source
+  instead — the Figma frame, the document's URL — and use a link as AC
+  evidence in place of a file.
 
 ## Process
 
-1. **Research before writing.** Build the inventory from real sources
-   (tickets, ADRs, code, docs) and classify every candidate with the
-   altitude lens above before the first create call. When a source mixes
-   levels (a ticket that states a capability *and* how it's built), split it:
-   the capability goes up the chain, the mechanism waits for Design.
-   Research surfaces gaps the sources don't close — keep a list of them and
-   **put them to the user in one batch before you start writing**, so the
-   answers land in the entities as decisions instead of as open questions.
-   **If any design includes UI, ask whether mockups exist** in that batch, and
-   offer to mock them up first if they don't and you have a design tool (see
-   *UI designs carry their mockups* under Design).
-   **Before any design or task, read the code as well.** Both levels are bound
-   by code analysis: find the modules and layers the capability will live in,
-   and learn the approach the codebase already takes there, so the design
-   conforms to the grain rather than describing a system this one isn't.
-2. **Check for an existing home** before creating, to avoid duplicates.
-   `searchEntities` is the fastest first look — typo-tolerant full text across
-   every entity, filterable by `types`, `statuses` and `feature`. Then walk
-   structurally: `listFeatures` (optionally filtered to a project, or `"none"`
-   for the unassigned), then `listDescendants`, which lists what is below any
-   entity by `reference` alone — its direct children by default (a feature's
-   requirements, a requirement's designs, a design's tasks), or the whole
-   subtree at every depth with `maxDepth: -1`, which is how you take in an
-   existing feature in one call. Acceptance criteria are not a chain level, so
-   list those with `listAcceptanceCriteria`; a project is not a chain parent,
-   so list its features with `listProjectFeatures`.
-3. **Cut each draft before the call that writes it** — the `create*` in step
-   4, or the publish in step 5. One pass for the three targets in *Content
-   conventions*: padding, hedging, and the same idea restated. Making it a
-   step is what makes it happen: an agent asked to write plainly writes the
-   way it writes, while an agent asked to cut something finds something to
-   cut.
-4. **Create top-down.** Feature first (`createFeature`, optionally with
-   `projectRefs`), then its requirements (`createRequirement` needs the
-   `featureRef` from the create response), then acceptance criteria under each
-   requirement — one `createAcceptanceCriterion` call each, then **publish the
-   requirement** (`publishDocument`, then `confirmPublish`) so its criteria
-   reach the published set a design can cover — then designs under each
-   requirement (`createDesign` takes the `requirementRef`, plus `acceptanceCriteriaRefs`
-   for the criteria it fulfils, which must be that requirement's own), then
-   tasks under each design (`createTask` takes the `designRef`). **Link the
-   repositories as you go** — `linkEntityRepository` on every design (each repo
-   it touches) and every task (exactly one). Decompose a design into tasks along
-   its repository and merge-safety boundaries, and give any task that can't
-   start yet its `**Depends on:**` line.
-5. **Move wording, don't duplicate.** When extracting a lower-level entity
-   from a higher one (a requirement out of a feature, an AC out of a
-   requirement), remove the moved text from the parent's draft — naturally a
-   single `editDocument` call, whose `ops` delete the extracted passage and
-   make any wording fixes the removal leaves behind — then publish the parent
-   (propose, review the cascade, confirm). Spexd links the child to its
-   parent automatically, so there's no need to list or point to it from the
-   parent body.
-6. **Verify at the end.** Walk the chain (`listFeatures`, then one
-   `listDescendants(FEAT-n, { maxDepth: -1 })` for everything beneath it, plus
-   `listAcceptanceCriteria` on each requirement) and
-   confirm the created set matches the plan, that every AC has a design against
-   it (`fulfilledBy`), and that no implementation detail leaked above Design.
-   Check the two things that are easy to leave half-done: **every design and
-   task carries its repository** (`listEntityRepositories`), and **no entity
-   contains implementation code** — an excerpt of existing code is fine, a
-   ready-to-paste implementation is not. `listInbox` is the quick cross-cutting
-   check that everything landed in the status you expected, and that **nothing is
-   left unpublished** — every entity you edited has had its publish confirmed.
-   Report anything a publish invalidated as *Reporting a publish* describes.
-   Report what was created and anything cancelled, each
-   as a **link** (`viewUrl`) on its reference, with its title, never a bare
-   list of references.
+1. **Research.** Build the inventory from real sources (tickets, ADRs, code,
+   docs) and classify every candidate before the first create. Split a source
+   that mixes levels: the capability goes up the chain, the mechanism waits
+   for Design. **Before any design or task, read the code** it will live in.
+2. **Ask once.** Put every gap research didn't close to the user in one batch
+   before writing — including, for any design with UI, whether mockups exist.
+3. **Check for an existing home** to avoid duplicates: `searchEntities` first,
+   then `listFeatures` (filter by project, or `"none"`) and
+   `listDescendants(FEAT-n, { maxDepth: -1 })`.
+4. **Cut each draft** for padding, hedging and restatement before the call
+   that writes it.
+5. **Create top-down**, linking repositories as you go:
+   1. `createFeature`, with `projectRefs` for the projects the user named.
+   2. `createRequirement` under the feature.
+   3. `createAcceptanceCriterion` for each AC, then publish the requirement so
+      its criteria can be covered.
+   4. `createDesign` under the requirement, with `acceptanceCriteriaRefs`;
+      link every repository it touches.
+   5. `createTask` with the design as `parentRef` (a requirement or feature
+      only when no design fits), split along repository and merge-safety
+      boundaries; link its one repository; add `**Depends on:**` where needed.
+6. **Move wording, don't duplicate.** When extracting a child from a parent,
+   delete the moved text from the parent in one `editDocument` call and
+   publish the parent. Spexd links the child automatically — don't list it in
+   the parent's body.
+7. **Publish everything you edited**, and report each publish.
+8. **Verify.** Walk `listDescendants(FEAT-n, { maxDepth: -1 })` and
+   `listAcceptanceCriteria` per requirement, and check:
+   - the created set matches the plan;
+   - every AC has a design (`fulfilledBy`);
+   - no implementation detail above Design, and no implementation code
+     anywhere;
+   - every design and task has its repository (`listEntityRepositories`);
+   - every design touching architecture has a mermaid diagram, and every
+     design with UI has its mockups;
+   - nothing is unpublished or in an unexpected status (`listInbox`).
+9. **Report** what was created, invalidated, flagged and cancelled, each as a
+   linked reference with its title.
