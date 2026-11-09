@@ -69,14 +69,16 @@ correct, and the pre-start check is what confirms that context still holds.
   `ambiguous` (a tie, on `tied`), or `not_found`. A miss is an outcome, never
   an error, and the entities it did resolve come back either way.
 - **Given a feature/requirement/design**, whether the ask is "what's next" or
-  "implement all of it", the unit of work is still the task. Use
-  `getOutstandingWorkForEntity` — the bare reference, whichever of the three it
-  is — to list the descendants whose status needs action, then
-  `listDescendants` on the design's reference to enumerate its tasks (its
-  default depth is that one level; from a feature or requirement, pass
-  `maxDepth: -1` and `types: ["TASK"]` to reach the tasks instead). Pick a task that is ready
-  to build (see status rules below); if you're building the whole parent, work
-  through its tasks one at a time as [Given a parent entity](#given-a-parent-entity-work-it-task-by-task)
+  "implement all of it", the unit of work is still the task.
+  `listDescendants(ref, { types: ["TASK"], maxDepth: -1 })` lists every task
+  beneath it; add `statuses: ["APPROVED"]` for the ones ready to build. For
+  "what's left on FEAT-n", `getFeatureOutstandingItems` names what the
+  feature's progress is short of — its `pendingBuild` group is the unbuilt
+  work. Don't use `getOutstandingWorkForEntity` for either: it lists what is
+  waiting on an approver or a re-submit, never an approved task ready to build.
+  Pick a task that is ready to build (see status rules below); if you're
+  building the whole parent, work through its tasks one at a time as
+  [Given a parent entity](#given-a-parent-entity-work-it-task-by-task)
   describes.
 - **Asked for what's next with nothing to anchor on**, browse `listInbox`:
   the org-wide, status-filtered view of everything. Pick a `view` preset
@@ -426,9 +428,8 @@ thing in a single PR. Expand it into its tasks and ship them one at a time.
 level down is its default); on a requirement or feature,
 `listDescendants(ref, { types: ["TASK"], maxDepth: -1 })` gives every task
 beneath it in one call, each carrying the design it belongs to as `parent`.
-`getOutstandingWorkForEntity` answers a different question — the descendants
-still needing action — and is what you want when the ask is "what's next"
-rather than "all of it". Report the set back the way step 2 asks: link, title and a one-line
+Add `statuses: ["APPROVED"]` when the ask is "what's next" rather than "all of
+it". Report the set back the way step 2 asks: link, title and a one-line
 summary for each.
 
 **2. Decide the order, and say it before you start.** Each task's
