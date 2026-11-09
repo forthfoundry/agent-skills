@@ -81,7 +81,9 @@ includes its subsections.
 - **Asked for what's next with nothing to anchor on**, browse `listInbox`:
   `view: "approved"` with `types: ["TASK"]` lists tasks ready to build across
   the organization; page with `nextCursor`. Use `searchEntities` when you have
-  text to search on instead.
+  text to search on instead. The `blocked` view means *invalidated by an
+  upstream publish*, not *waiting on another task* — dependencies live only on
+  a task's `**Depends on:**` line.
 
 ## Orient — open with the entity
 
@@ -235,6 +237,11 @@ home beyond this conversation, raise it as a comment thread (see *Comments*).
 
 - **Implement to the design's mechanism and the task's definition of done**,
   satisfying **every** criterion you owe, golden path and edge cases alike.
+- **Work from the task's sections.** `spexd-authoring` gives every task the
+  same shape: `## What changes` (the modules and files), `## What good looks
+  like`, `## Tests`, `## Regressions`, `## Mockups` for UI work, and
+  `## Done` — the definition of done and its checklist, which is also your PR
+  checklist.
 - **The task tells you what to write; it never contains it.** Code in the
   entities is quoted evidence of what already exists, not a draft to paste.
   Write the implementation in the repository's own idiom and along the grain
@@ -430,6 +437,9 @@ leave to your judgement.
   Take it from a tool response; never compose one. The host is the
   organization's own subdomain, and a composed `spexd.com` link opens nothing.
   Don't write the older positional form (`/feature/FEAT-3/REQ-7/…`).
+- **A criterion links as a query on its requirement's `viewUrl`**:
+  `[REQ-7/AC-5](https://acme.spexd.com/e/REQ-7?ac=AC-5)` — the form to use in a
+  PR description.
 - `getOutstandingWorkForEntity` items carry no `viewUrl`; read the entity if
   you need its link.
 - **Never invent references, versions or URLs** — read them from responses.
