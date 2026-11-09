@@ -1,104 +1,99 @@
 ---
 name: spexd-implementing
 description: >-
-  Implement software tasks using Spexd as the source of context — pull a task
-  and its full traceability chain (task → design → acceptance criteria →
-  requirement → feature) via the Spexd MCP tools (mcp__Spexd__*), open by
-  reporting the entity's link, title and a concise summary, run a pre-start
-  check (task status, open comments, still consistent with its parent design)
-  and flag anything before starting, build to that
-  spec, and reflect progress back onto the task's lifecycle status. Given a
-  parent entity instead — a feature, requirement or design — expand it into its
-  tasks, order them, and ship one branch and one PR per task. Use when
-  asked to pick up, build, or ship work that is tracked in Spexd, or to turn a
-  Spexd task into code. The complement of spexd-authoring: authoring writes the
-  spec, implementing executes it without changing it.
+  Implement work tracked in Spexd — pick up a task, read its traceability
+  chain (design, acceptance criteria, requirement, feature) as the spec, check
+  it is safe to start, build to it without changing it, and keep the task's
+  lifecycle status in step with its branch and PR. Given a feature,
+  requirement or design, build it task by task, one branch and one PR each.
+  Use when asked to pick up, build, ship or find the next piece of Spexd work,
+  or to turn a task into code. To write or change the spec itself, use
+  spexd-authoring.
 user-invocable: true
 ---
 
-# Implementing Spexd tasks
+<!--
+Section headings are an API. Spexd serves this skill one section at a time
+through loadSkill, and the load map in "Start here" names sections exactly.
+Renaming a heading breaks those pointers. There is deliberately no H1: an H1
+would contain every section, so loading it would return the whole body.
+Every cross-reference in italics must be a heading loadSkill can return.
+-->
 
-Spexd models a strict traceability chain — **Feature → Requirement → Acceptance
-Criteria → Design → Task** — and a **Task** is the leaf: the concrete unit of
-implementation work decomposed from exactly one design. This skill is about
-*executing* a task well, using everything above it in the chain as context. It
-is the mirror of `spexd-authoring`: authoring decides *what* to build and *how*;
-implementing carries out a decision that has already been made.
+## Start here
 
-**The one rule that governs everything: implement the spec, don't rewrite it.**
-A task executes a design; it never invents architecture. If, while building, you
-find the design is wrong, missing, or under-specified, **stop and surface it** —
-raise it with the humans or hand back to authoring to fix the *design* — rather
-than quietly building something the chain doesn't describe. Code that diverges
-from its design breaks traceability, which is the whole point of Spexd.
+Spexd models a strict chain: **Feature → Requirement → Acceptance Criteria →
+Design → Task**. A **task** is the leaf and the only unit of implementation
+work. It normally delivers one design; a task with no architecture to decide
+(a copy change, a configuration tweak) hangs directly off a requirement or
+feature instead. `spexd-authoring` decides *what* to build and *how*; this
+skill carries out a decision already made.
 
-## When to use this
+**The one rule: implement the spec, don't rewrite it.** A task executes a
+design; it never invents architecture. If the design turns out wrong, missing
+or under-specified, **stop and surface it** — as a comment thread on the
+design, and to the user — rather than quietly building something the chain
+doesn't describe. You never edit the spec while implementing: once the task
+starts, the chain is `LOCKED` and edits are refused.
 
-- "Pick up TASK-12 and implement it."
-- "What's the next piece of outstanding work on FEAT-6, and build it."
-- "Implement DES-320" — a parent entity, which still gets built one task at a
-  time, a branch and a PR each.
-- Any request to build, ship, or code something that is tracked in Spexd.
+Use this skill for "pick up TASK-12", "what's next on FEAT-6", "implement
+DES-320" (still built one task at a time), or any request to build or ship
+Spexd-tracked work. Writing or restructuring the spec is `spexd-authoring`.
 
-If instead you're being asked to *write or restructure the spec itself* — add a
-feature, split a requirement, draft acceptance criteria — that's
-`spexd-authoring`, not this skill.
+**The loop:** *Find the work* → *Orient — open with the entity* → *Gather the
+context* → *Pre-start check* → *Build* → *Reflect status*. Never skip from
+finding to building: the chain above the task is what makes the code right,
+and the pre-start check confirms it still holds.
 
-## The loop
+**Load only what the job needs.** A name in italics is a section:
+`loadSkill({ name: "spexd-implementing", section: "<heading>" })`. A section
+includes its subsections.
 
-Implementing a task is six steps: **find the work → orient → gather the
-context → pre-start check → build → reflect status.** Never skip straight from
-"find" to "build" — the context above the task is what makes the implementation
-correct, and the pre-start check is what confirms that context still holds.
+| You are about to… | Load |
+|---|---|
+| Pick up a task and build it end to end | The skill `whole` — you will follow every step |
+| Find what to build next | *Find the work*, *Orient — open with the entity* |
+| Read a task's context | *Gather the context* |
+| Decide whether a task is safe to start | *Pre-start check* |
+| Write the code and its tests | *Build* |
+| Move a task's status, name a branch or PR, or fix a task that didn't move | *Reflect status* |
+| Build a feature, requirement or design | *Given a parent entity: work it task by task* |
+| Check a tool's behaviour | *Operational notes (MCP surface)* |
 
-### 1. Find the work
+## Find the work
 
-- **Given a task reference**, read it with both `getEntity` and
-  `readDocument`, which answer different questions. `getEntity` is
-  **content-free** — it gives the type, owning feature, lifecycle status,
-  `viewUrl` and the ordered ancestor chain, and never the body.
-  `readDocument` is the only tool that returns a body at all: the LIVE draft
-  by default (ahead of the published version where there are unpublished
-  edits), plus the current `status` and the published head `version`. Both take
-  the bare reference and nothing else — no owning feature, no kind — so neither
-  has to wait on the other.
+- **Given a task reference**, `getEntity` on it. It is content-free, but it
+  gives the title, status, `viewUrl` and the ordered ancestor chain — enough to
+  orient, and the references *Gather the context* reads in one batch.
 - **Given a branch name or PR title**, `resolveGitHubBranch` turns it into the
-  entity it names in one hop — no need to parse the reference out yourself. It
-  reports an `outcome`: `resolved` (a task, on `task`), `out_of_scope` (the
-  deepest thing named isn't a task — e.g. a branch naming only its feature),
-  `ambiguous` (a tie, on `tied`), or `not_found`. A miss is an outcome, never
-  an error, and the entities it did resolve come back either way.
-- **Given a feature/requirement/design**, whether the ask is "what's next" or
-  "implement all of it", the unit of work is still the task. Use
-  `getOutstandingWorkForEntity` — the bare reference, whichever of the three it
-  is — to list the descendants whose status needs action, then
-  `listDescendants` on the design's reference to enumerate its tasks (its
-  default depth is that one level; from a feature or requirement, pass
-  `maxDepth: -1` and `types: ["TASK"]` to reach the tasks instead). Pick a task that is ready
-  to build (see status rules below); if you're building the whole parent, work
-  through its tasks one at a time as [Given a parent entity](#given-a-parent-entity-work-it-task-by-task)
-  describes.
+  entity it names in one hop. Its `outcome` is `resolved` (a task, on `task`),
+  `out_of_scope` (the deepest thing named isn't a task — a branch naming only
+  its feature), `ambiguous` (a tie, on `tied`) or `not_found`. A miss is an
+  outcome, never an error.
+- **Given a feature, requirement or design**, the unit of work is still the
+  task. `listDescendants(ref, { types: ["TASK"], maxDepth: -1 })` lists every
+  task beneath it; add `statuses: ["APPROVED"]` for the ones ready to build.
+  For "what's left on FEAT-n", `getFeatureOutstandingItems` names what the
+  feature's progress is short of — its `pendingBuild` group is the unbuilt
+  work. Don't use `getOutstandingWorkForEntity` for either: it lists what waits
+  on an approver or a re-submit, never an approved task ready to build. To
+  build the whole parent, see *Given a parent entity: work it task by task*.
 - **Asked for what's next with nothing to anchor on**, browse `listInbox`:
-  the org-wide, status-filtered view of everything. Pick a `view` preset
-  (`approved` is the one that lists work ready to build; also `all-work`,
-  `ready-for-review`, `drafts`, `requires-changes`, `blocked`), narrow with
-  `types: ["TASK"]`, and page with the `nextCursor` it returns. Each row
-  carries its `viewUrl` and `outstandingCount`. This browses by status;
-  `searchEntities` is the one to reach for when you have text to search on.
+  `view: "approved"` with `types: ["TASK"]` lists tasks ready to build across
+  the organization; page with `nextCursor`. Use `searchEntities` when you have
+  text to search on instead. The `blocked` view means *invalidated by an
+  upstream publish*, not *waiting on another task* — dependencies live only on
+  a task's `**Depends on:**` line.
 
-### 2. Orient — open with the entity, not with the work
+## Orient — open with the entity
 
-Whenever you're asked to pick up, work on, or look at a Spexd entity — a task,
-but equally a feature, requirement, AC or design — the **first thing you say
-back** is what that entity actually is. Before any plan, any file reads, any
-code, lead with:
+Whenever you're asked to pick up or look at a Spexd entity, the **first thing
+you say back** — before any plan, file read or code — is what it is:
 
-1. **A link to the entity** — the `viewUrl` from the tool response, as a
-   markdown link on the reference, e.g.
-   `[TASK-12](https://acme.spexd.com/e/TASK-12)`.
+1. **A link** — its `viewUrl` as a markdown link on the reference.
 2. **Its title**, verbatim.
 3. **A concise summary** — two or three sentences on what it covers and what
-   "done" means, in your own words rather than a paste of the body.
+   "done" means, in your own words.
 
 ```markdown
 **[TASK-12](https://acme.spexd.com/e/TASK-12) — Implement `POST /api/rides`**
@@ -110,459 +105,376 @@ rejects the three failure cases in AC-4/AC-5, and the state machine is covered
 by tests.
 ```
 
-**An entity's address is its bare reference under `/e/`** — a reference is
-org-unique, so `/e/TASK-12` locates it and the navigator derives the ancestors
-itself. The older positional form (`/feature/FEAT-3/REQ-7/DES-9/TASK-12`) still
-redirects, but don't write new links in it.
+If the ask spans several entities — "what's outstanding on FEAT-6" — give the
+same link, title and one-line summary for each, then say which you're picking
+up. Do this even when you're about to start at once: it lets a person confirm
+you're on the right thing before you spend effort on it.
 
-`viewUrl` comes back from `getEntity` / `getEntities`, `readDocument`,
-`listFeatures`, `listDescendants`, `searchEntities`, `listInbox`,
-`resolveEntityReferences` and `resolveGitHubBranch` — take it from the response
-rather than composing a URL yourself. Its host is your organization's own
-subdomain (`acme.spexd.com` in these examples), so a composed `spexd.com` link
-opens no organization. One tool doesn't return one:
-`getOutstandingWorkForEntity`, whose items are addressed by their own `reference` like anything else; the optional
-`path` array they also carry is the ancestor chain, and its absence means that
-row's chain is broken rather than that you can't address it. If the ask spans
-several entities — "what's outstanding on FEAT-6" — give the same link + title
-+ one-line summary for each, then say which one you're picking up.
+## Gather the context
 
-Do this even when you're about to start work immediately: it's what lets a
-human confirm you're on the right thing before you spend effort on it.
+A task on its own is only a definition of done; its meaning lives above it.
+Read the whole chain before writing code:
 
-### 3. Gather the context — walk UP the chain
-
-A task on its own is only a definition-of-done. Its *meaning* lives above it.
-Before writing code, read the whole ancestor chain so you build the right thing:
-
-- **Design** (`readDocument`) — the parent. This is where the architecture,
+- **Design** — the parent, and **your primary spec**: architecture,
   boundaries, data model, contracts, security, configuration, deployment,
-  failure modes, testing areas and trade-offs are. **This is your primary
-  spec.** `getDesignCoverage` then tells you exactly which acceptance criteria
-  it fulfils — that set, not the requirement's whole list, is what this design
-  is answerable for.
-- **Acceptance criteria** (`listAcceptanceCriteria` for a requirement's full
-  set, each with its structured given/when/then and the designs that fulfil it;
-  or `getRequirementCriteria` by `requirementRef` plus specific criterion
-  `references`) — the testable conditions your implementation must satisfy.
-  These are your acceptance tests in prose: your code is done when every one
-  passes.
-- **Requirement** (`readDocument`) — the behavioural rule the ACs prove.
-- **Feature** (`readDocument`) — the product capability and why it matters; the
-  scope boundaries that tell you what *not* to build.
+  failure modes, testing areas and trade-offs. `getDesignCoverage` gives the
+  acceptance criteria it fulfils — that set, not the requirement's whole list,
+  is what this design answers for.
+- **No design?** A task attached directly to a requirement or feature has no
+  design and no coverage to read. The requirement (or feature) is then your
+  primary spec, and the criteria you owe are the ones the task body names. If
+  the task turns out to need architecture the body doesn't settle, that is a
+  missing design: flag it rather than deciding it yourself.
+- **Acceptance criteria** — the testable conditions your code must satisfy.
+  Your work is done when every one you owe holds.
+- **Requirement** — the behavioural rule the criteria prove.
+- **Feature** — the capability and why it matters, and the scope boundaries
+  that tell you what *not* to build.
 
-**Two tools, two jobs.** `getEntity` is content-free: it gives the shape —
-type, status, owning feature, `viewUrl`, and the **ordered ancestor chain** —
-so reading the task already tells you the design, requirement and feature above
-it without walking up one call at a time, and `getEntities` pulls that whole
-set's metadata in one batched call, mixed kinds and all. But no body ever comes
-back from it. For the actual spec text, `readDocument` takes **1–10 references
-at once**, so the design, requirement and feature are a single call. Read the
-live draft (the default) rather than a published version — it's what
-collaborators currently see. Acceptance criteria are the exception to bare-
-reference addressing: an AC's reference is numbered within its requirement
-rather than org-wide, so criteria are fetched through their owning requirement.
+**Read the chain in three rounds, not one call per entity.**
 
-`readDocument` also returns each document's `commentThreads`. Skim them before
-building: an anchored discussion on the design is often where a caveat that
-never made it into the body lives. Pull the ones that look relevant with
-`getCommentThreads`.
+1. `getEntity(task)` — the ancestor chain (*Find the work* already made this
+   call).
+2. In parallel: `readDocument([task, design, requirement, feature])` and
+   `getDesignCoverage(design)`. The one `readDocument` call returns, for every
+   entity, its body (the live draft), current `status`, `viewUrl` and
+   `commentThreads`; for the requirement, its `criteria` with their
+   given/when/then and `because`; for the design, its review `verdict`. That
+   is everything this section and *Pre-start check* need except the comment
+   text.
+3. `getCommentThreads` for the **open** threads that look relevant —
+   `commentThreads` already gives each one's status and anchor, so a resolved
+   thread never needs fetching. An anchored discussion on the design is often
+   where a caveat that never reached the body lives.
 
-**Collect the visual design for any UI work.** If the task touches UI, gather
-every design asset the chain carries — Figma (or other design tool) frame
-links and embedded mockup screenshots — from the **task, its design, its
-requirement and its feature**. The task should name the specific frames it
-implements, but don't stop there if it doesn't: a design or requirement often
-carries mockups the task never repeated. Open each one: with the Figma MCP,
-`get_design_context` and `get_screenshot` on the linked node give you the
-layout, tokens and assets to build from; a screenshot embedded in a body is an
-image URL you can view directly. These are part of your spec, alongside the
-prose.
+Reach for `listAcceptanceCriteria` only when you need what the requirement's
+`criteria` lack — each criterion's `fulfilledBy` designs or its own review
+`verdict`. Criteria are addressed through their requirement (`REQ-7/AC-5`),
+never by a bare `AC-n`.
 
-Read enough of the chain that you could explain *why* the task exists and *how*
-it's meant to work before touching code.
+Read enough that you could explain *why* the task exists and *how* it's meant
+to work before touching code.
 
-### 4. Pre-start check — is this still safe to build?
+### Collect the visual design for UI work
 
-A task can be approved and still be a poor thing to start: it may
-have already been started, the task may not match its design, or a comment may have
-raised something the body never absorbed. Starting implementation locks the
-chain, so this is the cheapest moment to find out. **Run all three checks, and
-report the outcome before you transition the task or cut a branch.** Most of
-what you need is already in hand from steps 1–3; the rest is a cheap read away.
+If the task touches UI, gather every design asset the chain carries — design
+tool frame links and embedded mockup screenshots — from the **task, its
+design, its requirement and its feature**. The task should name the frames it
+implements, but a design or requirement often carries mockups the task never
+repeated. Open each one: with the Figma MCP, `get_design_context` and
+`get_screenshot` on the linked node give the layout, tokens and assets; an
+embedded screenshot is an image URL you can view directly. They are part of
+the spec, alongside the prose.
 
-**a. Status — is the task ready to build?** Read the task's `status`
-from `getEntity`/`readDocument` (fresh, not remembered from earlier in the
-session).
+## Pre-start check
 
-- `APPROVED` is the only ready state. Anything else is a flag: `DRAFT`,
-  `READY_FOR_REVIEW` or `INVALIDATED` is a spec that isn't signed off;
-  `CANCELLED` or `COMPLETED` is work that shouldn't be redone.
-- `IMPLEMENTATION_STARTED` or `PR_RAISED` means work on it is already under
-  way. Check `listTaskPullRequests` and `listEntityRepositories` for an existing
-  branch or PR, and say what you found rather than starting a second attempt.
-- Glance at the ancestors' statuses from the same `getEntities` call. A
-  `CANCELLED` or `INVALIDATED` design, requirement or feature under an
-  `APPROVED` task is a flag. (`LOCKED` ancestors are normal once implementation
-  has started anywhere on the chain.)
-- Check the task's `**Depends on:**` line: anything it names that isn't yet
-  `COMPLETED` (or whose PR you'd have to stack on) is a flag if it hasn't been
-  accounted for in the order you stated.
+A task can be approved and still be a poor thing to start: it may already be
+under way, it may not match its design, a review may have found the design no
+longer describes the software, or a comment may have raised something the body
+never absorbed. Starting implementation locks the chain, so this is the
+cheapest moment to find out. **Run all four checks and report the outcome
+before you transition the task or cut a branch.** Everything comes from
+*Gather the context*'s reads.
 
-**b. Comments — has anyone said something the body doesn't reflect?** The
-`commentThreads` returned by `readDocument` in step 3 already list them for the
-task, design, requirement and feature; pull the open ones with
-`getCommentThreads`. Flag any **unresolved** thread that:
+**a. Status — is the task ready to build?** Take the task's `status` from the
+`readDocument` batch — fresh, not remembered from earlier in the session.
+
+- `APPROVED` is the only ready state. `DRAFT`, `READY_FOR_REVIEW`,
+  `REQUIRES_CHANGES` or `INVALIDATED` is a spec not signed off; `CANCELLED` or
+  `COMPLETED` is work that shouldn't be redone.
+- `IMPLEMENTATION_STARTED` or `PR_RAISED` means work is already under way.
+  Check `listTaskPullRequests` for an existing PR and say what you found rather
+  than starting a second attempt.
+- A `CANCELLED` or `INVALIDATED` ancestor under an `APPROVED` task is a flag.
+  `LOCKED` ancestors are normal once implementation has started anywhere on
+  the chain.
+- Anything on the task's `**Depends on:**` line that isn't yet `COMPLETED`, and
+  isn't accounted for in the order you stated, is a flag.
+
+**b. Comments — has anyone said something the body doesn't reflect?** Flag any
+**open** thread on the task, design, requirement or feature that:
 
 - questions, disputes or caveats something this task builds, or the design
   mechanism it follows;
 - was raised **after** the task's last approval or version (compare against
-  `listVersions`), since the body can't have absorbed it; or
+  `listVersions`), so the body can't have absorbed it; or
 - is an earlier implementer's or reviewer's unanswered question.
 
 A resolved thread is settled; don't revisit it.
 
-**c. Alignment — does the task still meet its parent design?** Read the task
-body against the design body and check that the task describes a change the
-design's mechanism actually supports — same components, contracts, data model
-and boundaries, nothing the design is silent on or contradicts. Don't flag a design merely for having been
-republished: a change to a parent that affected the task would already have
-invalidated it. Acceptance criteria may be split across several tasks, so a
-criterion the task doesn't cover is not a mismatch.
+**c. Alignment — does the task still meet its parent design?** Check the task
+describes a change the design's mechanism supports — same components,
+contracts, data model and boundaries, nothing the design is silent on or
+contradicts. Don't flag a design merely for having been republished: a change
+that affected the task would already have invalidated it. Criteria may be split
+across several tasks, so a criterion this task doesn't cover is not a mismatch.
+A task with no design is checked against its requirement or feature instead.
 
-**Then flag, don't fix.** Report the result in one of two shapes:
+**d. Verdict — does the design still describe the software?** Where the
+organization has software review on, the design's `verdict` comes from its
+latest completed review. `stale` or `contradicts` means the design is known not
+to describe the software: flag it, quoting the verdict's `finding.summary`,
+rather than building against it. `accurate` and `unverified` are not flags —
+`unverified` only means nothing has judged that version yet. The key is absent
+while software review is off, and a task with no design has no verdict.
 
-- **Clear** — one line: *Pre-start check: task `APPROVED`, no open threads
-  bearing on it, task consistent with its design.*
-  Carry on to step 5.
+**Then flag, don't fix.** Report one of two shapes:
+
+- **Clear** — one line: "Pre-start check: task `APPROVED`, no open threads
+  bearing on it, consistent with its design, design verdict not stale." Carry
+  on to *Build*.
 - **Flagged** — a short list, each item with its link, what you saw and why it
-  matters (e.g. *"[TASK-12](…) builds the ride state machine as three
-  states, but [DES-9](…) specifies a fourth, `DISPATCHED`, that the task never
-  mentions"*).
-  **Stop there**: don't transition the task, don't branch, don't build, and ask
-  how to proceed. The user may well say "carry on" — a flag is a question, not a
-  veto — but that is their call, and it gets made before the chain locks.
+  matters (*"[TASK-12](…) builds the ride state machine as three states, but
+  [DES-9](…) specifies a fourth, `DISPATCHED`, that the task never
+  mentions"*). **Stop there**: don't transition, branch or build; ask how to
+  proceed. A flag is a question, not a veto — the user may say carry on — but
+  it is their call, made before the chain locks.
 
-Don't repair what you flag. The task, design and criteria are the spec, and
-fixing them is authoring's job (see the design-gap handling in step 5). If a
-finding needs a durable home beyond this conversation, `createCommentThread` on
-the affected entity — anchored with `quotedText` — records it for the humans
-after your session ends.
+Don't repair what you flag; the spec is authoring's job. If a finding needs a
+home beyond this conversation, raise it as a comment thread (see *Comments*).
 
-### 5. Build
+## Build
 
-- Implement to the **design's** mechanism and the **task's** definition of done.
-  Satisfy **every** acceptance criterion in the design's AC set, golden path and
-  edge cases alike.
-- **The task tells you what to write; it never contains it.** A task states what
-  changes, what good looks like, what tests should exist, what regressions to
-  cover and what finished looks like — plus any `**Depends on:**` line naming
-  tasks that must land first. Code in the entities is quoted evidence of what
-  already exists, not a draft to paste. Writing the implementation is your job,
-  in the repository's own idiom and along the grain the design describes.
-- **Build UI to the mockups.** Where the task, its design or its requirement
-  carries design-tool frames or screenshots, implement **as closely to them as
-  possible** — layout, spacing, hierarchy, states and the exact copy shown —
-  using the repository's existing components and design tokens to get there.
-  Don't invent new layouts, components or copy, and don't "improve" on the
-  mockups. Departing from them is acceptable only where they **don't cover**
-  what you need (a state, breakpoint or message they never show); then fill the
-  gap in the mockups' own visual language and the product's existing copy
-  conventions, and list every such gap-fill in the PR description so a
-  reviewer can check it. A gap bigger than a detail — a whole screen or flow
-  the mockups don't show — is a design gap: ask, as below, rather than
-  designing it yourself. If a mockup conflicts with the design's prose or an
-  acceptance criterion, flag it rather than picking one.
-- **Write code that explains itself, and comment only what it can't.** Names,
-  types and small well-cut functions carry the explanation; a comment restating
-  what the line below it does is noise, and it goes stale the first time
-  someone edits around it. Comments earn their place in two situations: a short
-  **file- or module-level** note saying what this unit is for and how it fits
-  with the rest, and a **line-level** note where the code is genuinely
-  ambiguous — a non-obvious invariant, a workaround and why it's needed, an
-  ordering or a constant that looks arbitrary but isn't. If a comment is
-  needed to explain *what* a block does, prefer renaming or extracting until it
-  isn't. Never narrate the change or restate the task in comments: no "added
-  for TASK-12", no changelog in the header. That belongs in the commit message
-  and the PR description, which is where the traceability already lives. Where
-  the repository requires documentation comments — public API docstrings,
-  generated docs, a linted comment style — its convention wins over this.
-- **Write the tests the task names**, including the regression cases it calls
-  out. The design says which areas of testing prove its acceptance criteria; the
-  task says which tests to add. A criterion with no assertion that fails when it
-  stops holding is not implemented, however green the suite is.
-- **Annotate every test with the criterion it proves.** A test written to
-  satisfy an acceptance criterion names that criterion, in the form
-  `REQ-7/AC-5` — the owning requirement *and* the criterion, because an AC is
-  numbered within its requirement, so a bare `AC-5` names nothing on its own.
-  Put it wherever the repository already carries test metadata — normally the
-  test name or description string, otherwise a comment on the test:
+- **Implement to the design's mechanism and the task's definition of done**,
+  satisfying **every** criterion you owe, golden path and edge cases alike.
+- **Work from the task's sections.** `spexd-authoring` gives every task the
+  same shape: `## What changes` (the modules and files), `## What good looks
+  like`, `## Tests`, `## Regressions`, `## Mockups` for UI work, and
+  `## Done` — the definition of done and its checklist, which is also your PR
+  checklist.
+- **The task tells you what to write; it never contains it.** Code in the
+  entities is quoted evidence of what already exists, not a draft to paste.
+  Write the implementation in the repository's own idiom and along the grain
+  the design describes.
+- **Land it whole.** A task is scoped to merge to `main` on its own without
+  dead paths — no half-wired screen or unreachable route. If the slice can't
+  land that way, say so rather than merging the stranded half; the task
+  boundary is wrong.
+- **Keep the change to the task.** Sibling tasks are separate units of work;
+  don't fold them in unless asked.
+- **Follow the repository's conventions** and its `CLAUDE.md` or contributor
+  rules. Comment what the code can't say for itself — a module's purpose, a
+  non-obvious invariant or workaround — and never narrate the change ("added
+  for TASK-12"): traceability lives in the commit and the PR.
+
+### Build UI to the mockups
+
+Where the chain carries design-tool frames or screenshots, implement **as
+closely to them as possible** — layout, spacing, hierarchy, states and the
+exact copy shown — using the repository's existing components and design
+tokens. Don't invent layouts, components or copy, and don't "improve" on the
+mockups. Depart from them only where they **don't cover** what you need (a
+state, breakpoint or message they never show): fill the gap in the mockups'
+visual language and the product's copy conventions, and list every gap-fill in
+the PR description. A gap bigger than a detail — a whole screen or flow — is a
+design gap: raise it (see *If the design is wrong or silent*). If a mockup
+conflicts with the design's prose or a criterion, flag it rather than picking
+one.
+
+### Tests trace to their criteria
+
+- **Write the tests the task names**, including the regressions it calls out.
+  The design names the areas of testing; the task names the tests. A criterion
+  with no assertion that fails when it stops holding is not implemented,
+  however green the suite.
+- **Annotate each test with the criterion it proves**, as `REQ-7/AC-5` — the
+  owning requirement *and* the criterion, since a bare `AC-5` names nothing.
+  Put it where the repository carries test metadata, normally the test name:
 
   ```ts
   it('rejects a ride request with no payment method [REQ-7/AC-5]', async () => {
   ```
 
-  List them all where one test covers several (`[REQ-7/AC-4, REQ-7/AC-5]`), and
-  leave the annotation off tests that don't map to a criterion — a unit test of
-  a helper or a regression guard the task called for is still worth writing;
-  don't invent an AC for it. This is what lets a reviewer, and later
-  `spexd-auditing`, get from a criterion to the assertion that proves it
-  without reading the whole suite.
-- **Land it whole.** A task is scoped to merge to `main` on its own without
-  leaving dead paths — no half-wired screen or unreachable route. If you find
-  you can't finish the slice that way, say so rather than merging the stranded
-  half; the task boundary is wrong and belongs back with authoring.
-- Follow the repository's own conventions and its `CLAUDE.md` / contributor rules
-  — this skill governs *how to use Spexd for context*, not how to write code in a
-  given codebase.
-- Keep the change scoped to the task. Sibling tasks are separate units of work;
-  don't fold them in unless asked.
-- **If the design is wrong or silent** on something you need: don't guess an
-  architecture. Surface the gap (to the user, or by flagging the design for
-  authoring to amend). Update the *design* first, then implement — never the
-  other way round. `createCommentThread` on the design is the durable way to
-  raise it — anchor the thread to the exact passage with `quotedText` so the
-  question sits on the sentence that's wrong, and it stays there for a human
-  after your session ends. Comments are accepted on an entity in any status, so
-  this works even once implementation has locked the chain and edits are
-  refused. You may start and reply to threads, and resolve one with
-  `resolveCommentThread` only once its point is addressed and you have replied
-  in it saying how. A question you raised about a wrong design is not yours to
-  resolve: a person answers it by amending the design, so leave it for them.
-  **Never reopen or delete a thread.**
+  List several where one test covers several (`[REQ-7/AC-4, REQ-7/AC-5]`).
+  Leave tests that map to no criterion unannotated — don't invent one. This is
+  how a reviewer, and later `spexd-auditing`, gets from a criterion to its
+  assertion.
 
-### 6. Reflect status — keep the task's lifecycle honest
+### If the design is wrong or silent
 
-A task carries an implementation sub-flow that the rest of the chain reads, so
-it must move as the work moves:
+Don't guess an architecture, and don't edit the design. Stop and surface the
+gap to the user, and raise it as a comment thread on the design anchored to
+the passage (see *Comments*). The design is fixed before the code that depends
+on it, never the other way round. Once implementation has started anywhere on
+the chain it is `LOCKED`, so the design can only change inside a proposal —
+the user's call, made with `spexd-authoring` (its *Proposals* section), not a
+workaround for you to reach for.
 
-- **`APPROVED → IMPLEMENTATION_STARTED`** — **the moment work starts, and you
-  make this move yourself.** "Starts" means when you begin building: after
-  you've read the chain, passed the pre-start check and decided this is the
-  task, before the branch exists
-  and before the first edit. Don't wait for a branch push to trigger it — that
-  leaves the task sitting `APPROVED` while files are already changing, so
-  anyone reading Spexd sees the work as unclaimed when it isn't, and two agents
-  can pick up the same task. Transition it with `transitionEntityStatuses` as
-  the first act of building, then cut the branch. (A task must be `APPROVED`
-  before implementation can start; if it isn't yet, it's not ready to build —
-  that's a spec/approval gap to raise, not to bypass.) Starting implementation
-  `LOCKS` the whole ancestor chain, freezing the spec you're building against —
-  which is exactly what you want, and another reason to do it before you write
-  code rather than after.
-- **`IMPLEMENTATION_STARTED → PR_RAISED`** — when the work moves into PR review.
-- **`→ COMPLETED`** — how the task finishes depends on whether its work raises
-  a pull request:
-  - **Work that raises a PR completes on merge, automatically.** `PR_RAISED →
-    COMPLETED` is **system-driven**: once the task is `PR_RAISED`, only the
-    merge completes it, so never set `COMPLETED` by hand — the move is refused.
-  - **Work that produces no PR** (a configuration, data or spec-only task) has
-    no merge to complete it, so **you make this move yourself**: once the work
-    is done and verified, transition the task `IMPLEMENTATION_STARTED →
-    COMPLETED` with `transitionEntityStatuses`. Don't use this route to skip a
-    PR the work should have had.
+## Reflect status
 
-**Name the task in the branch and the PR, and the rest of the lifecycle mostly
-drives itself.** Where the repository is connected to Spexd, GitHub activity
-moves the task for you: a branch naming an `APPROVED` task moves it to
-`IMPLEMENTATION_STARTED`, marking its PR ready for review moves it to
-`PR_RAISED`, and merging moves it to `COMPLETED` — and a hop that never fired
-(a PR opened ready with no branch event seen) is applied on the way rather than
-skipped. The branch-push hop is a backstop for a move you should already have
-made by hand; the PR hops are the mechanism proper. So the naming convention is
-not bookkeeping:
+A task's implementation statuses are read by the rest of the chain, so they
+move as the work moves:
+
+- **`APPROVED → IMPLEMENTATION_STARTED` — yourself, the moment work starts:**
+  after the pre-start check, before the branch and the first edit. Waiting for
+  a branch push leaves the task looking unclaimed while files change, and two
+  agents can pick it up. Starting `LOCKS` the ancestor chain, freezing the spec
+  you build against. A task that isn't `APPROVED` isn't ready — raise it, don't
+  bypass it.
+- **`IMPLEMENTATION_STARTED → PR_RAISED`** — when the work moves into review.
+- **`→ COMPLETED`** depends on whether the work raises a pull request:
+  - **With a PR, the merge completes it.** `PR_RAISED → COMPLETED` is
+    system-driven; setting it by hand is refused.
+  - **With no PR** (a configuration, data or spec-only task), move it
+    `IMPLEMENTATION_STARTED → COMPLETED` yourself once the work is done and
+    verified. Don't use this route to skip a PR the work should have had.
+
+Never record status in the task's content ("done", "in progress"). **Never
+move anything to `APPROVED`** — approval is human-only, enforced server-side.
+
+### Name the task in the branch and the PR
+
+Where the repository is connected to Spexd, GitHub activity moves the task: a
+branch naming an `APPROVED` task moves it to `IMPLEMENTATION_STARTED`, marking
+its PR ready for review moves it to `PR_RAISED`, and merging completes it. A
+hop that never fired is applied on the way. The branch hop is a backstop for a
+move you already made; the PR hops are the mechanism proper. So naming is not
+bookkeeping:
 
 - **Put the reference in the branch name**, e.g.
-  `claude/task-12-ride-request-endpoint`. A trailing slug is ignored and the
-  scan is case-insensitive; `resolveGitHubBranch` is what reads it.
-- **Always title the PR `{reference}: {title}`** — the task's bare reference, a
-  colon and a space, then the change description, e.g. `TASK-12: Implement POST
-  /api/rides`. Never raise a PR for Spexd-tracked work without the reference
-  leading the title: it's what lets a reviewer trace a PR back to its spec from
-  the PR list alone, and what the Spexd–GitHub link keys off. Keep it a plain
-  unlinked reference (a PR title is plain text) — the markdown link goes in the
-  description.
-- **Exactly one task in the branch name, and exactly one in the PR title.**
-  Both name the task being built and nothing else — never a second task, never
-  the parent design, requirement or feature. `DES-320: add ride requests` is
-  wrong even when the branch really does implement the whole design; so is
-  `TASK-612 + TASK-613: schema and endpoint`. A branch or title naming a parent
-  resolves `out_of_scope`, and one naming two tasks is `ambiguous` — either
-  way, nothing moves. Every other entity goes in the **PR description**: link
-  the task, the design it executes, the acceptance criteria the change
-  satisfies, and the PR beneath it in the stack. The title is the address; the
-  body is the context.
-- **Check rather than assume.** The transitions ride on webhook delivery, so
-  they can lag or, on an unconnected repository, never arrive.
-  `listTaskPullRequests` shows the PRs Spexd has actually observed for a task,
-  and `listEntityRepositories` shows whether the task is linked to a repository
-  at all. If the task hasn't moved, transition it yourself.
+  `claude/task-12-ride-request-endpoint`. The scan is case-insensitive and a
+  trailing slug is ignored.
+- **Title the PR `{reference}: {title}`** — `TASK-12: Implement POST
+  /api/rides`. The reference leads, as plain text; the markdown links go in
+  the description.
+- **Exactly one task in each, and nothing else** — no second task, no parent.
+  `DES-320: add ride requests` is wrong even when the branch builds the whole
+  design; so is `TASK-612 + TASK-613: schema and endpoint`.
+  `resolveGitHubBranch` takes the deepest reference named, so a name with only
+  a parent resolves `out_of_scope`, and one with two tasks is `ambiguous` —
+  either way, nothing moves.
+- **The description carries the context**: link the task, the design it
+  executes, the criteria it satisfies, any mockup gap-fills, and the PR
+  beneath it in a stack.
 
-**Transitioning by hand** is `transitionEntityStatuses` — one tool for every
-kind, taking a batch of 1–25 `{ reference, targetStatus }` pairs addressed by
-bare reference. There is no singular `transitionEntityStatus`. Each subject is
-decided independently: the moves that land come back under `transitioned` and
-the refusals under `failed` with a reason, so **read `failed`** rather than
-assuming success — a task the webhook already moved will refuse the same hop,
-which is a no-op worth recognising rather than an error to retry. Only legal
-manual transitions are accepted; illegal moves and system-driven statuses are
-rejected.
+### When the task didn't move
 
-Never edit the task's *content* to record status ("done", "in progress") — status
-is the lifecycle field, not the prose. And approval is a **human-only** action:
-an agent can never approve a task or move anything to `APPROVED` (this is enforced
-server-side; don't try to route around it).
+Transitions ride on webhook delivery, so they can lag or, on an unconnected
+repository, never arrive. Check rather than assume: `listTaskPullRequests`
+shows the PRs Spexd has observed, and `listEntityRepositories` whether the
+task is linked to a repository at all.
+
+- **If Spexd hasn't seen the PR, link it — don't just move the status.** Only
+  the merge of a PR Spexd has linked completes the task, so a task moved to
+  `PR_RAISED` by hand over a PR missing from `listTaskPullRequests` will never
+  complete. Attach it with `linkUnlinkedWorkToTask` (by `githubPrId`, or the
+  repository id and branch; `listUnlinkedWork` finds the row). That drives the
+  lifecycle as the webhook would, and `lifecycle.applied` reports what moved.
+- **Transition by hand only when the PR is linked and the status still lags.**
+  `transitionEntityStatuses` takes 1–25 `{ reference, targetStatus }` pairs
+  and decides each on its own: **read `failed`** rather than assuming success.
+  A task the webhook already moved refuses the same hop — a no-op to
+  recognise, not an error to retry.
 
 ## Given a parent entity: work it task by task
 
-**Implementation always happens at task level.** A feature, requirement or
-design is never itself a unit of work — it's a set of tasks plus the context
-that explains them, and only the task carries a definition of done, a
-repository, and the lifecycle GitHub drives. So when you're pointed at a parent
-("implement DES-320"), don't open one branch for the parent and land the whole
-thing in a single PR. Expand it into its tasks and ship them one at a time.
+A feature, requirement or design is never itself a unit of work: only a task
+carries a definition of done, a repository and the lifecycle GitHub drives.
+Pointed at a parent ("implement DES-320"), don't land it in one branch and one
+PR — expand it into its tasks and ship them one at a time.
 
-**1. Enumerate the tasks.** `listDescendants` on a design gives its tasks (one
-level down is its default); on a requirement or feature,
-`listDescendants(ref, { types: ["TASK"], maxDepth: -1 })` gives every task
-beneath it in one call, each carrying the design it belongs to as `parent`.
-`getOutstandingWorkForEntity` answers a different question — the descendants
-still needing action — and is what you want when the ask is "what's next"
-rather than "all of it". Report the set back the way step 2 asks: link, title and a one-line
-summary for each.
+1. **Enumerate the tasks** with
+   `listDescendants(ref, { types: ["TASK"], maxDepth: -1 })` — each row
+   carries its immediate parent, normally its design. Add
+   `statuses: ["APPROVED"]` when the ask is "what's next" rather than "all of
+   it". Report the set as *Orient — open with the entity* asks.
+2. **Decide the order, and state it before you start.** Each task's
+   `**Depends on:**` line — the first line of its body — names what must land
+   first; read the bodies in batched `readDocument` calls (up to 10 each) and
+   let those lines drive the sequence. Where nothing blocks, order for
+   reviewability: schema and contracts before the code that uses them, the
+   server before its client, what merges alone before what needs it. A person
+   can correct the order cheaply now, and expensively once three PRs are open.
+3. **Stack only where there is a real dependency.** Branch the first task off
+   `main`; branch a task that builds on another's code off that task's branch
+   and target its PR there, so each PR's diff is exactly one task. A task that
+   doesn't build on the others branches off `main` and is reviewed in
+   parallel.
 
-**2. Decide the order, and say it before you start.** Each task's
-`**Depends on:**` line — the first line of its body — names the tasks that must
-land first; read the bodies in one batched `readDocument` and let those lines
-drive the sequence. Where nothing blocks, order by what makes each PR
-reviewable on its own: schema and contracts before the code that uses them, the
-server before the client that calls it, the thing that can merge alone before
-the thing that needs it. State the order and the reasoning before cutting the
-first branch — it's cheap for a human to correct then and expensive once three
-PRs are open.
+   ```
+   main
+   └── claude/task-612-ride-request-schema          → PR: base main
+       └── claude/task-613-ride-request-endpoint    → PR: base claude/task-612-…
+           └── claude/task-614-ride-status-webhook  → PR: base claude/task-613-…
+   ```
 
-**3. Stack the branches.** Branch the first task off `main`, build it, raise its
-PR. Branch the *second* task off the *first task's branch* — not off `main` —
-build it, and target its PR at the first branch. And so on down the chain. Each
-PR's diff is then exactly one task's change, reviewable without the reader
-having to mentally subtract the task before it:
+4. **One task's full loop at a time, PR raised before moving on** — start it,
+   build it, raise its PR, confirm `PR_RAISED`, then the next. Raising each as
+   it finishes lets review start while you build the rest.
+5. **Keep the stack honest as it merges.** When a PR merges and its branch is
+   deleted, GitHub retargets the PR stacked on it at the merged branch's base;
+   if the branch is kept, retarget it yourself. Merge or rebase down the stack
+   so each PR shows only its own change.
 
-```
-main
-└── claude/task-612-ride-request-schema          → PR: base main
-    └── claude/task-613-ride-request-endpoint    → PR: base claude/task-612-…
-        └── claude/task-614-ride-status-webhook  → PR: base claude/task-613-…
-```
-
-Stack only where you have to. A task that doesn't build on the code of the ones
-before it can branch straight off `main` and be reviewed in parallel — a stack
-is for genuine dependency, not for tidiness, and every unnecessary link in it
-is one more PR that has to be merged in order.
-
-**4. One task's cycle at a time, PR raised before you move on.** For each task
-in turn, run the full loop: transition it to `IMPLEMENTATION_STARTED` as work
-starts, build it, raise its PR titled `{reference}: {title}`, and confirm it
-reached `PR_RAISED`. Then start the next. Don't batch the PRs up to the end —
-raising each as its task finishes is what lets review start on the earlier work
-while you build the later, which is the whole point of the stack.
-
-**5. Keep the stack honest as it merges.** When an earlier PR merges, GitHub
-repoints the PR stacked on it at the merged branch's base; merge or rebase down
-the stack so the later PRs keep showing only their own change. `listTaskPullRequests`
-tells you which PRs Spexd has actually observed for a task if a status looks
-stale.
-
-If a task partway down turns out to be unbuildable — its design is wrong, a
-dependency isn't done, the slice can't merge without dead paths — **stop at
-that task and surface it**. Don't skip it and stack the remaining tasks on the
-gap; the branch below it would then carry work whose foundation isn't agreed.
-Land what's already reviewable, say which task you stopped on and why, and
-raise the design problem the way step 5 of the loop describes.
+If a task partway down is unbuildable — its design is wrong, a dependency isn't
+done, the slice can't merge without dead paths — **stop at that task**. Don't
+stack the rest on the gap. Land what is reviewable, say where you stopped and
+why, and raise the problem as *If the design is wrong or silent* describes.
 
 ## Operational notes (MCP surface)
 
-- **Reads**: `getEntity` is **content-free** — metadata only, never a document
-  body. `readDocument` is the only tool that returns content, and it returns the
-  LIVE collaborative draft plus the current `status` and published head
-  `version`; pass `version` (`"latest-published"` or a number) to read the
-  record instead. `readDocument` batches 1–10 references and every entry carries
-  a whole body, so name the documents you'll actually read. It is also the one
-  document tool allowed on a frozen (`LOCKED` / `COMPLETED` / `CANCELLED`)
-  entity — `searchDocument`, `editDocument` and publishing are all refused
-  there, which matters precisely when you're implementing, since starting
-  implementation locks the chain above you.
-- **`getEntity` addresses any entity by its bare reference** — no kind, no owning
-  feature. The type token is already in the reference and a reference is unique
-  across the org, so `DES-9` on its own resolves to exactly one entity. The result
-  is discriminated by `type` and carries the owning `feature`, the ancestor chain
-  and the `viewUrl`. **`getEntities`** is the batched sibling: 1–100 references of
-  any mix of kinds in one call, with unmatched references simply omitted from the
-  result rather than failing the batch.
-- **Reading the history** when you need to know what changed and why:
-  `listVersions` gives the entity's timeline — published versions interleaved
-  with status transitions and approval decisions, each version carrying a
-  `precis` of what it changed — and `compareVersions` gives the difference
-  between two published versions directly. Worth a look when a task's design
-  was invalidated and re-approved and you need to know what moved.
-- **You generally don't author while implementing.** If you must correct the spec:
-  `readDocument`, then one `editDocument` carrying **every** change as an ordered
-  `ops` batch — not a call per change — each op targeting `target.find` (exact
-  text, occurring exactly once) or, for something with no text to match, a
-  `target.handle` from `searchDocument`. If any op fails the whole batch is
-  rejected and the document is untouched. Publishing is then **two** calls:
-  a content-less `publishDocument` (`baseVersion` from `readDocument`, advisory)
-  which writes nothing and returns a cascade proposal plus a one-hour token, and
-  `confirmPublish({ token })`, which is what actually writes — always two, even
-  when nothing would be invalidated, and not confirming is simply cancelling. A
-  confirm rejected as stale means re-propose. See `spexd-authoring` for the full
-  authoring workflow.
-- **A reference is org-unique, so nothing has to be qualified to read it back.**
-  `TASK-991` pasted from a branch name or a PR title resolves on its own through
-  `getEntity` (or, from the raw branch/PR text, `resolveGitHubBranch`). The
-  *document* tools (`readDocument`, `searchDocument`, `editDocument`,
-  `publishDocument`), `listDescendants`, `transitionEntityStatuses`, `moveEntity`,
-  `listVersions` and `getOutstandingWorkForEntity` address the same way — the
-  bare reference, no kind and no owning feature. Only a parent is ever named:
-  `createRequirement` takes a `featureRef`, `createDesign` a `requirementRef`,
-  `createTask` a `designRef`, and `moveEntity` takes the new parent as
-  `parentRef`. Acceptance criteria are the exception throughout: `AC-3` is
-  numbered within its requirement, so it is always addressed as `requirementRef`
-  + criterion reference.
-- **Every entity you mention gets a link.** Tool responses carry a `viewUrl`;
-  render references as markdown links to it — in your replies, in PR
-  descriptions, and in commit messages where a reference appears. A bare
-  `TASK-12` is something the reader has to go and find.
-- **Never invent references, versions or URLs** — read them from the tool
-  responses.
+The tool descriptions give each call's arguments. These notes cover what they
+leave to your judgement.
+
+### Reading
+
+- `readDocument` is the only tool that returns a body; every other response is
+  metadata. It reads the live draft by default and batches 1–10 references,
+  each returned whole, so name only what you'll read. It is the one document
+  tool allowed on a frozen (`LOCKED` / `COMPLETED` / `CANCELLED`) entity —
+  which the chain is, once you start.
+- Every entity is addressed by its bare reference (`TASK-12`, `DES-9`) — no
+  kind, no owning feature. A criterion is the exception: it is numbered within
+  its requirement, so it is always addressed through it.
+- `listVersions` is an entity's timeline of versions, transitions and
+  approvals; `compareVersions` diffs two published versions. Worth reading when
+  a design was invalidated and re-approved and you need to know what moved.
+
+### Links and references
+
+- **Link every entity you mention** — in replies, PR descriptions and commit
+  messages — to its `viewUrl`: `[TASK-12](https://acme.spexd.com/e/TASK-12)`.
+  Take it from a tool response; never compose one. The host is the
+  organization's own subdomain, and a composed `spexd.com` link opens nothing.
+  Don't write the older positional form (`/feature/FEAT-3/REQ-7/…`).
+- **A criterion links as a query on its requirement's `viewUrl`**:
+  `[REQ-7/AC-5](https://acme.spexd.com/e/REQ-7?ac=AC-5)` — the form to use in a
+  PR description.
+- `getOutstandingWorkForEntity` items carry no `viewUrl`; read the entity if
+  you need its link.
+- **Never invent references, versions or URLs** — read them from responses.
+
+### Comments
+
+- Comments are accepted in any status, so a thread is how you raise a problem
+  on a locked spec. Start one with `createCommentThread`, anchored to the exact
+  passage with `quotedText` (or to one criterion with `criterion`), and reply
+  with `addComment`.
+- Resolve a thread with `resolveCommentThread` only once its point is
+  addressed and you have replied saying how. A question you raised about the
+  spec is not yours to resolve — a person answers it by amending the spec.
+  **Never reopen or delete a thread.**
+
+### You don't author while implementing
+
+The chain you build against is `LOCKED`, and `editDocument` and publishing are
+refused on it. Raise what is wrong as a comment thread and stop. If the user
+asks you to change the spec, that is authoring work: load `spexd-authoring`'s
+*Editing*, *Publishing* and *Proposals* sections and follow them.
 
 ## Process checklist
 
-1. Resolve the work (by reference, or by finding what's outstanding). If you
-   were given a parent, expand it into its tasks, order them by their
-   `**Depends on:**` lines and by what's reviewable alone, and state that order
-   — then run steps 2–8 once per task, stacking each branch on the last.
-2. Report it back first: **link (`viewUrl`) + title + concise summary**, before
-   any plan or code.
-3. Read the full ancestor chain (design → ACs → requirement → feature) before
-   coding — one batched `readDocument` for the bodies, `getDesignCoverage` for
-   the exact AC set you owe. For UI work, collect every design-tool frame
-   and mockup screenshot from the task, design, requirement and feature.
-4. Run the pre-start check: the task is `APPROVED` and not already started, with nothing on
-   its `**Depends on:**` line outstanding; no open comment thread bears on it;
-   the task still meets its parent design. Report it — if anything is flagged,
-   stop and ask rather than forcing a transition or building out of order.
-5. `transitionEntityStatuses` the task to `IMPLEMENTATION_STARTED` as work
-   begins — before the branch, not after the push — then branch, with exactly
-   one task reference in the name.
-6. Implement to the design and the task's definition of done; let the code
-   explain itself and keep comments to file-level and genuinely ambiguous
-   points; write the tests it names, annotate each with the `REQ-x/AC-y` it
-   proves, cover the regressions it calls out, and satisfy every AC. Build UI
-   as close to its mockups as possible, inventing no design or copy they
-   already cover, and list any gap you had to fill in the PR.
-7. Raise the PR, titled `{reference}: {title}` (e.g. `TASK-12: Implement POST
-   /api/rides`) and naming that one task only; confirm the task reached
-   `PR_RAISED` (or transition it); link the task, its design and any other
-   entity or stacked PR from the description.
-8. If the design proved wrong or incomplete, report it (or fix the *design* via
-   authoring) — don't let the code and the spec diverge.
+1. **Find the work.** Given a parent, list its tasks, order them and state the
+   order, then run steps 2–8 once per task.
+2. **Orient:** link, title and summary, before any plan or code.
+3. **Gather the context** in three rounds; for UI, collect every mockup.
+4. **Pre-start check** — status, comments, alignment, verdict. If anything is
+   flagged, stop and ask.
+5. **Start:** move the task to `IMPLEMENTATION_STARTED`, then branch with
+   exactly one task reference in the name.
+6. **Build** to the design and the definition of done; annotate each test with
+   the `REQ-x/AC-y` it proves; match the mockups.
+7. **Raise the PR** as `{reference}: {title}`, confirm `PR_RAISED` (or link
+   the PR), and link the chain from the description.
+8. **If the design proved wrong**, raise it as a comment thread and tell the
+   user — never let the code and the spec diverge.
