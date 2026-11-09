@@ -20,7 +20,9 @@ user-invocable: true
 
 Spexd models a strict traceability chain — **Feature → Requirement → Acceptance
 Criteria → Design → Task** — and a **Task** is the leaf: the concrete unit of
-implementation work decomposed from exactly one design. This skill is about
+implementation work. A task normally delivers one design; one with no
+architecture to decide (a copy change, a configuration tweak) hangs directly
+off a requirement or feature instead. This skill is about
 *executing* a task well, using everything above it in the chain as context. It
 is the mirror of `spexd-authoring`: authoring decides *what* to build and *how*;
 implementing carries out a decision that has already been made.
@@ -143,6 +145,11 @@ Before writing code, read the whole ancestor chain so you build the right thing:
   spec.** `getDesignCoverage` then tells you exactly which acceptance criteria
   it fulfils — that set, not the requirement's whole list, is what this design
   is answerable for.
+- **No design?** A task attached directly to a requirement or feature has no
+  design and no coverage to read. The requirement (or feature) is then your
+  primary spec, and the criteria you owe are the ones the task body names. If
+  the task turns out to need architecture the body doesn't settle, that is a
+  missing design: flag it rather than deciding it yourself.
 - **Acceptance criteria** (`listAcceptanceCriteria` for a requirement's full
   set, each with its structured given/when/then and the designs that fulfil it;
   or `getRequirementCriteria` by `requirementRef` plus specific criterion
@@ -230,7 +237,8 @@ design's mechanism actually supports — same components, contracts, data model
 and boundaries, nothing the design is silent on or contradicts. Don't flag a design merely for having been
 republished: a change to a parent that affected the task would already have
 invalidated it. Acceptance criteria may be split across several tasks, so a
-criterion the task doesn't cover is not a mismatch.
+criterion the task doesn't cover is not a mismatch. A task with no design is
+checked against its requirement or feature instead.
 
 **Then flag, don't fix.** Report the result in one of two shapes:
 
@@ -427,7 +435,8 @@ thing in a single PR. Expand it into its tasks and ship them one at a time.
 **1. Enumerate the tasks.** `listDescendants` on a design gives its tasks (one
 level down is its default); on a requirement or feature,
 `listDescendants(ref, { types: ["TASK"], maxDepth: -1 })` gives every task
-beneath it in one call, each carrying the design it belongs to as `parent`.
+beneath it in one call, each carrying its immediate parent — normally its
+design, or the requirement or feature for a task with no design.
 Add `statuses: ["APPROVED"]` when the ask is "what's next" rather than "all of
 it". Report the set back the way step 2 asks: link, title and a one-line
 summary for each.
@@ -525,8 +534,8 @@ raise the design problem the way step 5 of the loop describes.
   `listVersions` and `getOutstandingWorkForEntity` address the same way — the
   bare reference, no kind and no owning feature. Only a parent is ever named:
   `createRequirement` takes a `featureRef`, `createDesign` a `requirementRef`,
-  `createTask` a `designRef`, and `moveEntity` takes the new parent as
-  `parentRef`. Acceptance criteria are the exception throughout: `AC-3` is
+  `createTask` a `parentRef` (its design, or a requirement or feature when no
+  design fits), and `moveEntity` takes the new parent as `parentRef`. Acceptance criteria are the exception throughout: `AC-3` is
   numbered within its requirement, so it is always addressed as `requirementRef`
   + criterion reference.
 - **Every entity you mention gets a link.** Tool responses carry a `viewUrl`;
@@ -546,7 +555,8 @@ raise the design problem the way step 5 of the loop describes.
    any plan or code.
 3. Read the full ancestor chain (design → ACs → requirement → feature) before
    coding — one batched `readDocument` for the bodies, `getDesignCoverage` for
-   the exact AC set you owe. For UI work, collect every design-tool frame
+   the exact AC set you owe (for a task with no design, the criteria its body
+   names). For UI work, collect every design-tool frame
    and mockup screenshot from the task, design, requirement and feature.
 4. Run the pre-start check: the task is `APPROVED` and not already started, with nothing on
    its `**Depends on:**` line outstanding; no open comment thread bears on it;
