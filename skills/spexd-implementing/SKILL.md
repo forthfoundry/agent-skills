@@ -5,7 +5,8 @@ description: >-
   and its full traceability chain (task → design → acceptance criteria →
   requirement → feature) via the Spexd MCP tools (mcp__Spexd__*), open by
   reporting the entity's link, title and a concise summary, run a pre-start
-  check (task status, open comments, still consistent with its parent design)
+  check (task status, open comments, still consistent with its parent design,
+  design's review verdict)
   and flag anything before starting, build to that
   spec, and reflect progress back onto the task's lifecycle status. Given a
   parent entity instead — a feature, requirement or design — expand it into its
@@ -194,9 +195,10 @@ it's meant to work before touching code.
 ### 4. Pre-start check — is this still safe to build?
 
 A task can be approved and still be a poor thing to start: it may
-have already been started, the task may not match its design, or a comment may have
-raised something the body never absorbed. Starting implementation locks the
-chain, so this is the cheapest moment to find out. **Run all three checks, and
+have already been started, the task may not match its design, a review may have
+found the design no longer describes the software, or a comment may have raised
+something the body never absorbed. Starting implementation locks the
+chain, so this is the cheapest moment to find out. **Run all four checks, and
 report the outcome before you transition the task or cut a branch.** Most of
 what you need is already in hand from steps 1–3; the rest is a cheap read away.
 
@@ -205,7 +207,8 @@ from `getEntity`/`readDocument` (fresh, not remembered from earlier in the
 session).
 
 - `APPROVED` is the only ready state. Anything else is a flag: `DRAFT`,
-  `READY_FOR_REVIEW` or `INVALIDATED` is a spec that isn't signed off;
+  `READY_FOR_REVIEW`, `REQUIRES_CHANGES` or `INVALIDATED` is a spec that isn't
+  signed off;
   `CANCELLED` or `COMPLETED` is work that shouldn't be redone.
 - `IMPLEMENTATION_STARTED` or `PR_RAISED` means work on it is already under
   way. Check `listTaskPullRequests` and `listEntityRepositories` for an existing
@@ -240,10 +243,19 @@ invalidated it. Acceptance criteria may be split across several tasks, so a
 criterion the task doesn't cover is not a mismatch. A task with no design is
 checked against its requirement or feature instead.
 
+**d. Verdict — does the design still describe the software?** Where the
+organization has software review on, `readDocument` on the design carries a
+`verdict` from its latest completed review. `stale` or `contradicts` means the
+design is known not to describe the software: flag it, quoting the verdict's
+`finding.summary`, rather than building against it. `accurate` and
+`unverified` are not flags — `unverified` only means nothing has judged that
+version yet. The key is absent while software review is off, and a task with
+no design has no verdict to check.
+
 **Then flag, don't fix.** Report the result in one of two shapes:
 
 - **Clear** — one line: *Pre-start check: task `APPROVED`, no open threads
-  bearing on it, task consistent with its design.*
+  bearing on it, task consistent with its design, design verdict not stale.*
   Carry on to step 5.
 - **Flagged** — a short list, each item with its link, what you saw and why it
   matters (e.g. *"[TASK-12](…) builds the ride state machine as three
@@ -560,7 +572,8 @@ raise the design problem the way step 5 of the loop describes.
    and mockup screenshot from the task, design, requirement and feature.
 4. Run the pre-start check: the task is `APPROVED` and not already started, with nothing on
    its `**Depends on:**` line outstanding; no open comment thread bears on it;
-   the task still meets its parent design. Report it — if anything is flagged,
+   the task still meets its parent design; the design's verdict isn't `stale`
+   or `contradicts`. Report it — if anything is flagged,
    stop and ask rather than forcing a transition or building out of order.
 5. `transitionEntityStatuses` the task to `IMPLEMENTATION_STARTED` as work
    begins — before the branch, not after the push — then branch, with exactly
