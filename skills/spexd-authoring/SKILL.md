@@ -318,6 +318,7 @@ because it doesn't apply, never because nobody thought about it.
 - `## Configuration`
 - `## Deployment`
 - `## Failure modes`
+- `## Other requirements affected` — always present (see *Impact sweep*)
 - `## Testing`
 - `## Trade-offs and alternatives`
 - `**Sources:**`
@@ -356,6 +357,10 @@ because it doesn't apply, never because nobody thought about it.
 - **Deployment** — rollout and migration ordering, backwards compatibility,
   anything that must ship in sequence.
 - **Failure modes** and how each is handled.
+- **Other requirements affected** — each requirement or design in another
+  feature that this change must keep true, linked, with how the design
+  honours it; or one line saying the sweep found none, with the queries it
+  ran.
 - **Testing** — for each covered AC, linked: the kind and level of test that
   proves it (unit at this seam, integration across that boundary, end to end),
   plus edge and failure cases needing their own coverage. Name what an
@@ -396,6 +401,30 @@ states must include its mockups in the `## User interface` section:
 
 A mockup doesn't replace the mechanism, data model and contracts beneath the
 screen.
+
+### Impact sweep
+
+A design can satisfy every criterion it covers and still break an approved
+rule in another feature — one that relies on the state it changes or the code
+it touches. Reading the chain above the design won't find that rule, and
+neither will searching on the feature's name. Before drafting, sweep for it:
+
+1. **Consequences.** Write down, in plain domain language, what the change
+   does to users and to the system's state: "the rider can no longer request a
+   ride", "the driver's status changes", "the rider is no longer sent
+   receipts". Search each phrase with `searchEntities` across the whole
+   organization — no `feature` filter.
+2. **Code surface.** List the files, modules, tables, events and functions the
+   change touches, or that already own the state it changes, and search each
+   one. Designs name these in their architecture boundaries, data model and
+   contracts, so a hit means another design depends on that surface.
+3. **Triage.** Read each approved requirement or design from another feature
+   that the sweep turns up, and decide whether this design must honour it.
+   Don't rely on `findRelatedEntities` alone: it ranks by closeness of
+   subject, not by side effect, so a rule on another topic that this change
+   still breaks won't surface.
+4. **Record** the outcome in `## Other requirements affected` (see *What a
+   good design covers*).
 
 ## Task
 
@@ -689,7 +718,8 @@ say what you skipped:
 1. **Research.** Build the inventory from real sources (tickets, ADRs, code,
    docs) and classify every candidate before the first create. Split a source
    that mixes levels: the capability goes up the chain, the mechanism waits
-   for Design. **Before any design or task, read the code** it will live in.
+   for Design. **Before any design or task, read the code** it will live in;
+   before any design, also run the *Impact sweep*.
 2. **Ask once.** Put every gap research didn't close to the user in one batch
    before writing — including, for any design with UI, whether mockups exist.
 3. **Check for an existing home** to avoid duplicates: `searchEntities` first,

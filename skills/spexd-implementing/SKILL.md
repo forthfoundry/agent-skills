@@ -155,6 +155,30 @@ never by a bare `AC-n`.
 Read enough that you could explain *why* the task exists and *how* it's meant
 to work before touching code.
 
+### Sweep for impact beyond the chain
+
+The chain says what the task must make true, not what else the change could
+break. An approved requirement in another feature that relies on the state the
+task changes, or the code it touches, sits outside every entity you just read,
+and searching on the feature's name rarely finds it. Sweep for it before the
+pre-start check, so anything it finds is raised before the chain locks:
+
+1. **Consequences.** Write down, in plain domain language, what the change
+   does to users and to the system's state ("the rider can no longer request a
+   ride", "the driver's status changes"). Search each phrase with
+   `searchEntities` across the whole organization — no `feature` filter.
+2. **Code surface.** List the files, modules, tables, events and functions the
+   task touches, or that already own the state it changes, and search each
+   one. Designs name these in their architecture boundaries, data model and
+   contracts, so a hit means another design depends on that surface.
+3. **Triage.** Read each approved requirement or design from another feature
+   that the sweep turns up, and decide whether this change must honour it.
+   Don't rely on `findRelatedEntities` alone: it ranks by closeness of subject,
+   not by side effect.
+
+If the design has an `## Other requirements affected` section, start from it,
+but still sweep: a rule may have been approved since the design was.
+
 ### Collect the visual design for UI work
 
 If the task touches UI, gather every design asset the chain carries — design
@@ -172,7 +196,7 @@ A task can be approved and still be a poor thing to start: it may already be
 under way, it may not match its design, a review may have found the design no
 longer describes the software, or a comment may have raised something the body
 never absorbed. Starting implementation locks the chain, so this is the
-cheapest moment to find out. **Run all four checks and report the outcome
+cheapest moment to find out. **Run all five checks and report the outcome
 before you transition the task or cut a branch.** Everything comes from
 *Gather the context*'s reads.
 
@@ -218,11 +242,19 @@ rather than building against it. `accurate` and `unverified` are not flags —
 `unverified` only means nothing has judged that version yet. The key is absent
 while software review is off, and a task with no design has no verdict.
 
+**e. Reach — does the design honour what the sweep found?** For each
+cross-feature requirement or design from *Sweep for impact beyond the chain*
+that the change must honour, check the design accounts for it, in its
+mechanism or its `## Other requirements affected`. One it doesn't is a gap in
+the design: flag it, with both links and what the change would break, and
+raise it as *If the design is wrong or silent* describes — never build around
+it quietly.
+
 **Then flag, don't fix.** Report one of two shapes:
 
 - **Clear** — one line: "Pre-start check: task `APPROVED`, no open threads
-  bearing on it, consistent with its design, design verdict not stale." Carry
-  on to *Build*.
+  bearing on it, consistent with its design, design verdict not stale, impact
+  sweep found nothing the design misses." Carry on to *Build*.
 - **Flagged** — a short list, each item with its link, what you saw and why it
   matters (*"[TASK-12](…) builds the ride state machine as three states, but
   [DES-9](…) specifies a fourth, `DISPATCHED`, that the task never
@@ -467,9 +499,10 @@ asks you to change the spec, that is authoring work: load `spexd-authoring`'s
 1. **Find the work.** Given a parent, list its tasks, order them and state the
    order, then run steps 2–8 once per task.
 2. **Orient:** link, title and summary, before any plan or code.
-3. **Gather the context** in three rounds; for UI, collect every mockup.
-4. **Pre-start check** — status, comments, alignment, verdict. If anything is
-   flagged, stop and ask.
+3. **Gather the context** in three rounds, then sweep for impact beyond the
+   chain; for UI, collect every mockup.
+4. **Pre-start check** — status, comments, alignment, verdict, reach. If
+   anything is flagged, stop and ask.
 5. **Start:** move the task to `IMPLEMENTATION_STARTED`, then branch with
    exactly one task reference in the name.
 6. **Build** to the design and the definition of done; annotate each test with
