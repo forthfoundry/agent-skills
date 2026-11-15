@@ -60,7 +60,9 @@ grounding, and fan-out.
      its criteria are written: criteria live in the requirement's draft until
      it is, every criteria read answers the published set, and a design can
      only cover a published criterion. An unpublished requirement reads as
-     having no criteria at all.
+     having no criteria at all. Publish each one **as soon as** its criteria
+     are written, before drafting the next — never in a batch at the end, which
+     is the work a cut-short turn loses first.
 
 ## The shape of an import
 
@@ -123,8 +125,9 @@ behind it, which its sub-agent needs to link what it creates.
 
 Delegate **one sub-agent per feature**, in parallel (launch them in a single
 message so they run concurrently). Each sub-agent owns its feature's slice of
-the chain end-to-end: it derives the requirements, then the ACs, and creates
-them under that feature via the MCP tools. Because each sub-agent writes only
+the chain end-to-end: it derives the requirements and their ACs, and creates
+them under that feature via the MCP tools — one requirement at a time, each
+published before the next is drafted. Because each sub-agent writes only
 under its own `featureRef`, they work on disjoint subtrees and never collide —
 references themselves are server-generated and unique across the whole org, so
 nothing depends on the fan-out to keep them apart.
@@ -139,27 +142,37 @@ for altitude; and the two rules above. A prompt template:
 > `<featureRef>` — "<title>". Its evidence: `<files/docs/routes>`. Its
 > repositories: `<owner/name>`, one per repository.
 >
-> **Step A — Requirements.** Read the code and docs behind this feature and
+> **Step A — Find the rules.** Read the code and docs behind this feature and
 > derive the behavioural rules it must uphold — what must be *true* within the
 > capability, in product language ("the user can…", "every X must Y"). Ground
 > each one in what you observe; don't invent capabilities the code doesn't
-> show. For each, `createRequirement` under `<featureRef>` with a product-level
-> body and a closing `**Sources:**` list. Keep mechanism out (no vendors, tables,
-> algorithms, or code — those wait for Design). Check `listDescendants` on
-> `<featureRef>` first to avoid duplicates. As you create each requirement,
-> `linkEntityRepository` it to every repository its evidence lives in, from the
-> list above.
+> show. Check `listDescendants` on `<featureRef>` first to avoid duplicates. If
+> a requirement already there has criteria in its draft (`readDocument`) but
+> none from `listAcceptanceCriteria`, an earlier run was cut off before
+> publishing it: publish it (`publishDocument`, then `confirmPublish`) before
+> drafting anything new.
 >
-> **Step B — Acceptance criteria.** For each requirement you created, write the
-> acceptance criteria that would prove it — atomic Given/When/Then scenarios,
-> one condition each, golden path *and* the important failure/edge paths as
-> **separate** criteria. Here you may use judgement and go beyond today's
-> behaviour: describe what a correct implementation *should* guarantee, not only
-> what the current code does. `createAcceptanceCriterion` under each requirement
-> (one call each — it writes the criterion into the requirement's draft), then
-> publish each requirement once (`publishDocument`, then `confirmPublish`) so its
-> criteria reach the published set the designs will cover. Prefer measurable
-> outcomes over adjectives.
+> **Step B — One requirement at a time: create, criteria, publish.** Take the
+> rules in turn, and finish each one before you start the next:
+>
+> 1. `createRequirement` under `<featureRef>` with a product-level body and a
+>    closing `**Sources:**` list. Keep mechanism out (no vendors, tables,
+>    algorithms, or code — those wait for Design). `linkEntityRepository` it to
+>    every repository its evidence lives in, from the list above.
+> 2. Write the acceptance criteria that would prove it — atomic Given/When/Then
+>    scenarios, one condition each, golden path *and* the important
+>    failure/edge paths as **separate** criteria. Here you may use judgement and
+>    go beyond today's behaviour: describe what a correct implementation
+>    *should* guarantee, not only what the current code does. Prefer measurable
+>    outcomes over adjectives. `createAcceptanceCriterion` once per criterion —
+>    each call writes the criterion into the requirement's draft.
+> 3. Publish the requirement (`publishDocument`, then `confirmPublish`) so its
+>    criteria reach the published set the designs will cover. It stays `DRAFT`.
+>
+> Only then draft the next requirement. Never create every requirement first and
+> publish them together at the end: a turn cut short then leaves all of them
+> unpublished, and no design can cover their criteria. Done one at a time, an
+> interruption leaves at most the requirement in progress unpublished.
 >
 > Where a point the sources leave open stops a reviewer accepting a
 > requirement or criterion as written, raise a follow-up task under that
@@ -236,7 +249,10 @@ falls short.
    design is created; afterwards it's `addDesignCoverage` (one criterion, by
    `requirementRef` + `criterionRef`) or `replaceDesignCoverage` (the whole set
    at once). Coverage is a pure structural write — it rolls no version and
-   moves nothing in the chain. (Decomposing designs into tasks is out of scope
+   moves nothing in the chain. Only a **published** criterion can be covered:
+   if `createDesign` or `addDesignCoverage` refuses with a 404 because the
+   acceptance criteria are not found, the requirement was never published.
+   Publish it (`publishDocument` then `confirmPublish`), then retry. (Decomposing designs into tasks is out of scope
    for an import — leave it to `spexd-authoring`/`spexd-implementing` once
    humans have reviewed. The only tasks an import raises are the follow-ups in
    *Follow-up tasks for unresolved ambiguity*, and a design you write here
@@ -314,13 +330,23 @@ sub-agent.
 - **Input:** one feature reference.
 - **Output:** that feature's requirements and their acceptance criteria, with
   **every requirement published** (`publishDocument` then `confirmPublish`)
-  after its criteria are written. The unit is not finished until it is: an
-  unpublished requirement shows no criteria, and the designs stage cannot cover
-  them. Publishing leaves the status at `DRAFT` (see *The two rules*).
+  after its criteria are written. Publishing leaves the status at `DRAFT` (see
+  *The two rules*).
 
 Follow *Phases 2 & 3* for that feature alone, as the sub-agent brief describes
 it, without the report-back to an orchestrator. Raise any cross-feature question
 in your closing summary instead of acting on it.
+
+- **A requirement is finished only once it is published**, and it is published
+  before the next one is drafted. An unpublished requirement shows no criteria,
+  and the designs stage cannot cover them. A unit cut off by its step bound or
+  a failed turn then leaves at most the one requirement it was working on
+  unpublished.
+- **A continued or re-sent unit publishes first.** Before drafting anything
+  new, list the feature's requirements (`listDescendants`) and publish any whose
+  draft (`readDocument`) holds criteria while `listAcceptanceCriteria` returns
+  none. That is the requirement an earlier turn was cut off in; finish it
+  before starting another.
 
 Other features' requirements units are drafting at the same moment, each in its
 own conversation. Before creating a requirement, search the workspace
@@ -335,7 +361,6 @@ Closing contract:
 - End the unit with a summary of what was drafted, and of which sources were skipped and why.
 - Never start the next stage unprompted.
 - Read the workspace before writing, so a re-sent or continued unit creates nothing twice.
-  A continued unit also publishes any requirement an earlier turn left unpublished.
 
 ### Designs stage
 
@@ -349,6 +374,13 @@ Phase 4 for **one** feature's requirements, done in this conversation.
 Follow *Phase 4 — Design across the requirements* over those requirements, and
 link each design to the criteria it fulfils. Leave a requirement the prompt
 does not name to the unit that names it.
+
+**Publish an unpublished requirement before designing for it.** If a
+requirement the prompt names has criteria in its draft (`readDocument`) but
+none from `listAcceptanceCriteria`, its requirements unit was cut off before
+publishing it. Publish it (`publishDocument` then `confirmPublish`) first, then
+design. A `createDesign` 404 naming acceptance criteria that are not found means
+exactly this.
 
 Other features' designs units are drafting at the same moment, each in its own
 conversation. Before creating a design, search the workspace (`searchEntities`)
@@ -437,8 +469,9 @@ with one search. The body carries:
   *Follow-up tasks for unresolved ambiguity*).
 - **Everything DRAFT, no transitions.** Reiterated because it's easy to slip:
   `create*` is enough; never call `transitionEntityStatuses` during an import.
-  This does not mean "don't publish" — every requirement is published once its
-  criteria are written, and stays `DRAFT` when it is.
+  This does not mean "don't publish" — every requirement is published as soon
+  as its criteria are written, before the next one is drafted, and stays
+  `DRAFT` when it is.
 - **MCP surface** (see `spexd-authoring` for the full editing/publishing model):
   entities are created with `create*`; edited by reading with `readDocument`
   and sending **every** change for that document as one `editDocument` call
@@ -500,16 +533,17 @@ with one search. The body carries:
 2. **Discover** the feature set from evidence; `createProject`; `createFeature`
    for each capability linked into the project, and link each feature to its
    repositories. Capture every `featureRef`.
-3. **Fan out** one sub-agent per feature (concurrently). Each: derive grounded
-   **requirements**, linked to their repositories, then judgement-based
-   **acceptance criteria**, created under its feature, then publishes each
-   requirement so its criteria reach the published set.
+3. **Fan out** one sub-agent per feature (concurrently). Each works one
+   requirement at a time: create a grounded **requirement** under its feature,
+   linked to its repositories; write its judgement-based **acceptance
+   criteria**; then publish it so its criteria reach the published set — all
+   before drafting the next.
 4. **Reconcile** the sub-agents' reports; place any cross-feature rules; collect
    the architectural-seam notes. Reconcile the follow-ups too: where sub-agents
    reported the same cross-feature question, raise it as **one** task, placed by
    the follow-up rules.
 5. **Design** across the requirements along architectural seams, grounded in the
-   real codebase, with at least one design under every requirement; link each
+   real codebase, first publishing any requirement left unpublished, with at least one design under every requirement; link each
    design to the ACs it fulfils; confirm every requirement has a design and
    every AC is covered. Raise a follow-up under any design the evidence leaves
    open.
