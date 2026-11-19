@@ -381,6 +381,10 @@ editable as the design changes. Pick the view that shows the decision:
 Use both when both matter. Upload an image only for what mermaid can't draw.
 Never ASCII art.
 
+A diagram that doesn't parse renders as an error. Quote every label or
+subgraph title that holds punctuation (`, : ; ( ) = #`) or `<br/>`:
+`A["covered = min(owed, left)"]`, `subgraph claim["Claim, per org"]`.
+
 ### UI designs carry their mockups
 
 Any design with a new screen, a changed flow, or a component with visible
