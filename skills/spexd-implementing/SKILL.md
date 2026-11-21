@@ -147,6 +147,10 @@ Read the whole chain before writing code:
    thread never needs fetching. An anchored discussion on the design is often
    where a caveat that never reached the body lives.
 
+Screenshots and files referenced in the chain or its threads are fetched with
+`createAttachmentDownload`, all of them in one call (see `spexd-authoring`,
+*Attachments and comments*); never `curl` their `/api/attachment/…` URLs.
+
 Reach for `listAcceptanceCriteria` only when you need what the requirement's
 `criteria` lack — each criterion's `fulfilledBy` designs or its own review
 `verdict`. Criteria are addressed through their requirement (`REQ-7/AC-5`),
