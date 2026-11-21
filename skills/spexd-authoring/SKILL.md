@@ -681,6 +681,14 @@ leave to your judgement.
   inline it as base64. Embed the returned URL (`![alt](url)` or
   `[label](url)`); its `id` attaches the file as AC evidence. Mint a fresh
   ticket to retry. Without a shell, see *Without a shell or the repository*.
+- A download works the same way, by reference. To read an attachment you find
+  in content, a comment or criterion evidence, pass its id or its URL exactly
+  as found (`/api/attachment/…`, an absolute URL, or an evidence `url`) to
+  `createAttachmentDownload`. One call takes 1–10 refs, so fetch every file you
+  need at once. Run each returned `downloadCommand` and open the saved file
+  locally. **Never `curl` `/api/attachment/…` directly**: it needs a browser
+  session and answers 401. Each ticket is single-use and expires after 10
+  minutes, so mint again to retry.
 - Comments work in any status and never change content. Start a thread with
   `createCommentThread` and reply with `addComment`.
 - **Reply before resolving**, saying how the point was addressed. Resolve
@@ -716,6 +724,8 @@ say what you skipped:
 - **Uploads and screenshots:** you can't send the bytes. Link the source
   instead — the Figma frame, the document's URL — and use a link as AC
   evidence in place of a file.
+- **Reading an attachment:** with no shell, its bytes can't be read over MCP.
+  Tell the user so, rather than guessing at what an image shows.
 
 ## Process
 
