@@ -102,6 +102,23 @@ everything else hangs off.
    limited", "no data leaks across tenants") or a cross-cutting concern
    (versioning, audit), it is a **requirement**, not a feature — hold it for
    Phase 2. When torn, prefer the coarser feature and push the detail down.
+
+   **Group by what a user does or sees, never by how the code is laid out.**
+   A source file, module, script or pipeline step is not a feature, and
+   neither is a bundle of them: "school and station data" built from
+   `schools.py` and `stations.py` is the code's shape, while "rail station
+   data" and "schools within a mile of a station" are what someone uses. Two
+   checks before `createFeature`:
+
+   - **Name its demo.** Say in one sentence, as a user would, what they do or
+     see when it is shown to them. A candidate with no such sentence is a
+     grouping of code, so regroup it.
+   - **Name a persona other than the maintainer.** Build, deploy, CI,
+     local-preview and data-refresh scripts serve the people who maintain the
+     system, not its users. They are not a feature unless the product's own
+     users operate them. Describe them in the design whose behaviour they
+     produce (its deployment and failure modes), and mention them in the
+     project overview.
 3. **Create a Project and the features under it.** `createProject` with a short
    product overview (what the system is, who it's for, how you scoped the
    import, and the sources surveyed). Then `createFeature` for each capability,
@@ -418,6 +435,20 @@ disagreeing about what the system does. If not, raise a **follow-up task** with
   sources.** A source ticket, subtask or checklist is not an ambiguity, however
   unfinished it looks — it is not imported, as a follow-up or otherwise. If
   every source is settled, an import creates no task at all.
+- **Your own drafts are not a source.** A disagreement between two entities
+  you wrote, or between your draft and the code, is your error: correct the
+  draft and raise nothing. An ambiguity sits only *between sources*, or in
+  behaviour no source specifies.
+- **Raise one only where the answer changes what the system is specified to
+  do.** If either reading would leave the requirement's behaviour and
+  acceptance criteria unchanged, the point is not a follow-up. That covers
+  operational defaults (a branch name, a bind address, a port, a CI trigger),
+  the unestablished behaviour of a third-party tool, and a guess at intent
+  where the code is unambiguous. Record it in the design's failure modes,
+  trade-offs or deployment notes instead.
+- **Keep the set small enough to review.** Across one feature, raise at most
+  three, the ones a reviewer most needs to settle. List any others in the
+  closing report.
 - **One ambiguity, one task.** Where the same question surfaces under several
   entities, raise it once, placed by the table below.
 - **`DRAFT`, no transitions, no repository** — like everything else an import
@@ -530,8 +561,9 @@ with one search. The body carries:
 
 1. **Survey** all supplied sources (repo + docs + tickets); build a complete map
    of what the system does.
-2. **Discover** the feature set from evidence; `createProject`; `createFeature`
-   for each capability linked into the project, and link each feature to its
+2. **Discover** the feature set from evidence, grouped by what a user does or
+   sees, not by code layout or maintainer tooling; `createProject`;
+   `createFeature` for each capability linked into the project, and link each feature to its
    repositories. Capture every `featureRef`.
 3. **Fan out** one sub-agent per feature (concurrently). Each works one
    requirement at a time: create a grounded **requirement** under its feature,
