@@ -144,8 +144,9 @@ Delegate **one sub-agent per feature**, in parallel (launch them in a single
 message so they run concurrently). Each sub-agent owns its feature's slice of
 the chain end-to-end: it derives the requirements and their ACs, and creates
 them under that feature via the MCP tools — one requirement at a time, each
-published before the next is drafted. Because each sub-agent writes only
-under its own `featureRef`, they work on disjoint subtrees and never collide —
+created with its criteria before the next is drafted. Because each sub-agent
+writes only under its own `featureRef`, they work on disjoint subtrees and
+never collide —
 references themselves are server-generated and unique across the whole org, so
 nothing depends on the fan-out to keep them apart.
 
@@ -169,27 +170,31 @@ for altitude; and the two rules above. A prompt template:
 > publishing it: publish it (`publishDocument`, then `confirmPublish`) before
 > drafting anything new.
 >
-> **Step B — One requirement at a time: create, criteria, publish.** Take the
-> rules in turn, and finish each one before you start the next:
+> **Step B — One requirement at a time: one create with its criteria.** Take
+> the rules in turn, and finish each one before you start the next:
 >
-> 1. `createRequirement` under `<featureRef>` with a product-level body and a
->    closing `**Sources:**` list. Keep mechanism out (no vendors, tables,
->    algorithms, or code — those wait for Design). `linkEntityRepository` it to
->    every repository its evidence lives in, from the list above.
-> 2. Write the acceptance criteria that would prove it — atomic Given/When/Then
+> 1. Draft the requirement: a product-level body and a closing `**Sources:**`
+>    list. Keep mechanism out (no vendors, tables, algorithms, or code — those
+>    wait for Design).
+> 2. Draft the acceptance criteria that would prove it — atomic Given/When/Then
 >    scenarios, one condition each, golden path *and* the important
 >    failure/edge paths as **separate** criteria. Here you may use judgement and
 >    go beyond today's behaviour: describe what a correct implementation
 >    *should* guarantee, not only what the current code does. Prefer measurable
->    outcomes over adjectives. `createAcceptanceCriterion` once per criterion —
->    each call writes the criterion into the requirement's draft.
-> 3. Publish the requirement (`publishDocument`, then `confirmPublish`) so its
->    criteria reach the published set the designs will cover. It stays `DRAFT`.
+>    outcomes over adjectives. Give a criterion a `because.origin` only where
+>    a source states one (`spexd-authoring`, *Acceptance Criteria*).
+> 3. `createRequirement` under `<featureRef>` with that body and the criteria
+>    as `acceptanceCriteria` — one call. The criteria are part of its version 1,
+>    numbered `AC-1`…`AC-n` in list order (read them from the response's
+>    `criteria`), so the designs can cover them with no publish. It stays
+>    `DRAFT`. Then `linkEntityRepository` it to every repository its evidence
+>    lives in, from the list above.
 >
-> Only then draft the next requirement. Never create every requirement first and
-> publish them together at the end: a turn cut short then leaves all of them
-> unpublished, and no design can cover their criteria. Done one at a time, an
-> interruption leaves at most the requirement in progress unpublished.
+> Only then draft the next requirement. Never draft every requirement first and
+> create them together at the end. A create is all or nothing — one refused
+> criterion refuses its whole requirement, and nothing is recorded — so done
+> one at a time, a refusal or an interruption costs only the requirement in
+> progress, and every requirement already created holds all its criteria.
 >
 > Where a point the sources leave open stops a reviewer accepting a
 > requirement or criterion as written, raise a follow-up task under that
@@ -346,24 +351,28 @@ sub-agent.
 
 - **Input:** one feature reference.
 - **Output:** that feature's requirements and their acceptance criteria, with
-  **every requirement published** (`publishDocument` then `confirmPublish`)
-  after its criteria are written. Publishing leaves the status at `DRAFT` (see
-  *The two rules*).
+  **every criterion in a published version** — normally because each
+  requirement was created with its criteria. Status stays `DRAFT` throughout
+  (see *The two rules*).
 
 Follow *Phases 2 & 3* for that feature alone, as the sub-agent brief describes
 it, without the report-back to an orchestrator. Raise any cross-feature question
 in your closing summary instead of acting on it.
 
-- **A requirement is finished only once it is published**, and it is published
-  before the next one is drafted. An unpublished requirement shows no criteria,
-  and the designs stage cannot cover them. A unit cut off by its step bound or
-  a failed turn then leaves at most the one requirement it was working on
-  unpublished.
-- **A continued or re-sent unit publishes first.** Before drafting anything
-  new, list the feature's requirements (`listDescendants`) and publish any whose
-  draft (`readDocument`) holds criteria while `listAcceptanceCriteria` returns
-  none. That is the requirement an earlier turn was cut off in; finish it
-  before starting another.
+- **A requirement created with its criteria is finished at the create.** Its
+  criteria are in version 1, so the designs stage can cover them with nothing
+  to publish. Create each one before drafting the next.
+- **Criteria added after the create need a publish.** Only a requirement whose
+  criteria were added with `createAcceptanceCriterion` after it was created —
+  one past the 50-criterion limit, say — holds them in its draft. Publish it
+  (`publishDocument` then `confirmPublish`) before the next requirement is
+  drafted; until then it shows none of those criteria and the designs stage
+  cannot cover them.
+- **A continued or re-sent unit publishes such a requirement first.** Before
+  drafting anything new, list the feature's requirements (`listDescendants`)
+  and publish any whose draft (`readDocument`) holds criteria that
+  `listAcceptanceCriteria` does not return. That is one an earlier turn was
+  cut off in after adding criteria; finish it before starting another.
 
 Other features' requirements units are drafting at the same moment, each in its
 own conversation. Before creating a requirement, search the workspace
@@ -500,9 +509,9 @@ with one search. The body carries:
   *Follow-up tasks for unresolved ambiguity*).
 - **Everything DRAFT, no transitions.** Reiterated because it's easy to slip:
   `create*` is enough; never call `transitionEntityStatuses` during an import.
-  This does not mean "don't publish" — every requirement is published as soon
-  as its criteria are written, before the next one is drafted, and stays
-  `DRAFT` when it is.
+  This does not mean "don't publish" — a requirement whose criteria were added
+  after its create is published as soon as they are written, before the next
+  one is drafted, and stays `DRAFT` when it is.
 - **MCP surface** (see `spexd-authoring` for the full editing/publishing model):
   entities are created with `create*`; edited by reading with `readDocument`
   and sending **every** change for that document as one `editDocument` call
@@ -514,10 +523,14 @@ with one search. The body carries:
   calls, and during an import the proposal is usually empty — everything you
   create is `DRAFT`, so there is rarely an approved descendant to invalidate —
   but the confirm is still required, and skipping it means nothing was
-  published. `createAcceptanceCriterion` is different: it is one call that
-  writes the criterion into its requirement's draft, with nothing to confirm.
-  The criteria reach the published set when the requirement is published, and
-  a design can only cover a published criterion.
+  published. Criteria sent with `createRequirement` as `acceptanceCriteria`
+  are already published: they are part of version 1, numbered `AC-1`…`AC-n` in
+  list order, at most 50 per create, and one refused criterion refuses the
+  whole create. `createAcceptanceCriterion` is for adding a criterion to an
+  existing requirement: it is one call that writes the criterion into its
+  requirement's draft, with nothing to confirm. Those criteria reach the
+  published set when the requirement is next published, and a design can only
+  cover a published criterion.
   References are
   server-generated and **unique across the org** — read them from the create
   response and never invent them. A bare reference resolves on its own, so

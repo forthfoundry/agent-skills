@@ -222,6 +222,8 @@ Also load *Acceptance criteria and coverage* for how criteria reach a version.
 **What it is.** One testable scenario that proves its requirement, belonging
 to exactly one requirement. A criterion is **structured, not markdown**:
 `createAcceptanceCriterion` takes separate fields, and the app renders them.
+A new requirement's criteria can instead be sent with `createRequirement` as
+`acceptanceCriteria`, a list whose items take the same fields and `because`.
 
 | Field | Holds |
 |---|---|
@@ -655,13 +657,21 @@ leave to your judgement.
 
 ### Acceptance criteria and coverage
 
-- Creating, updating or deleting a criterion is one call that edits the
-  requirement's draft: no publish, no version, no cascade. Read the new `AC-n`
-  from the create response.
-- Criteria reach a version when the **requirement** is published. Write them
-  all, then publish once. Until then they are drafts: published-set reads
-  (`listAcceptanceCriteria`, `getRequirementCriteria`) don't show them, design
-  coverage refuses them, and `readDocument` on the requirement does show them.
+- **A new requirement takes its criteria on the create.** Pass them to
+  `createRequirement` as `acceptanceCriteria`. They are part of version 1,
+  numbered `AC-1`…`AC-n` in list order; read each one's `AC-n` from the
+  response's `criteria`. A design can cover them at once, with no publish
+  first. The create is all or nothing: one refused criterion refuses the whole
+  create, naming its position, and nothing is recorded. At most 50 per create;
+  add more afterwards with `createAcceptanceCriterion`.
+- On an existing requirement, creating, updating or deleting a criterion is
+  one call that edits the requirement's draft: no publish, no version, no
+  cascade. Read the new `AC-n` from the create response.
+- Those draft edits reach a version when the **requirement** is published.
+  Write them all, then publish once. Until then they are drafts:
+  published-set reads (`listAcceptanceCriteria`, `getRequirementCriteria`)
+  don't show them, design coverage refuses them, and `readDocument` on the
+  requirement does show them.
 - Coverage is separate from the design's document and rolls no version. Set
   it with `acceptanceCriteriaRefs` on `createDesign`, then adjust with
   `addDesignCoverage`, `removeDesignCoverage` or `replaceDesignCoverage`.
@@ -762,12 +772,10 @@ say what you skipped:
    that writes it.
 5. **Create top-down**, linking repositories as you go:
    1. `createFeature`, with `projectRefs` for the projects the user named.
-   2. `createRequirement` under the feature.
-   3. `createAcceptanceCriterion` for each AC, then publish the requirement so
-      its criteria can be covered.
-   4. `createDesign` under the requirement, with `acceptanceCriteriaRefs`;
+   2. `createRequirement` under the feature with its `acceptanceCriteria`.
+   3. `createDesign` under the requirement, with `acceptanceCriteriaRefs`;
       link every repository it touches.
-   5. `createTask` with the design as `parentRef` (a requirement or feature
+   4. `createTask` with the design as `parentRef` (a requirement or feature
       only when no design fits), split along repository and merge-safety
       boundaries; link its one repository; add `**Depends on:**` where needed.
 6. **Move wording, don't duplicate.** When extracting a child from a parent,
