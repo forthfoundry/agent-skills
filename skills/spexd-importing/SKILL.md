@@ -159,7 +159,9 @@ for altitude; and the two rules above. A prompt template:
 > You are importing one feature of an existing project into Spexd. **First load
 > the `spexd-authoring` skill and apply its altitude rules.** Feature:
 > `<featureRef>` — "<title>". Its evidence: `<files/docs/routes>`. Its
-> repositories: `<owner/name>`, one per repository.
+> repositories: `<owner/name>`, one per repository. Run id: `<run id>`; this
+> feature's local id: `<F03>` — key every create you make with an alias built
+> from them, as the skill's *Operational notes* describe.
 >
 > **Step A — Find the rules.** Read the code and docs behind this feature and
 > derive the behavioural rules it must uphold — what must be *true* within the
@@ -184,8 +186,10 @@ for altitude; and the two rules above. A prompt template:
 >    *should* guarantee, not only what the current code does. Prefer measurable
 >    outcomes over adjectives. Give a criterion a `because.origin` only where
 >    a source states one (`spexd-authoring`, *Acceptance Criteria*).
-> 3. `createRequirement` under `<featureRef>` with that body and the criteria
->    as `acceptanceCriteria` — one call. The criteria are part of its version 1,
+> 3. `createRequirement` under `<featureRef>` with that body, the criteria
+>    as `acceptanceCriteria` and the alias `<run id>/<feature local id>-R<nn>`
+>    (see *Operational notes*) — one call. A body that points at an entity not
+>    yet created references it by alias. The criteria are part of its version 1,
 >    numbered `AC-1`…`AC-n` in list order (read them from the response's
 >    `criteria`), so the designs can cover them with no publish. It stays
 >    `DRAFT`. Then `linkEntityRepository` it to every repository its evidence
@@ -268,6 +272,16 @@ falls short.
    follow-up beneath it by *Follow-up tasks for unresolved ambiguity*.
    `linkEntityRepository` each design to the repository (or repositories) its
    seam lives in, as you create it.
+
+   **Reference by alias what isn't created yet.** A design that points at a
+   sibling design, or a body that points at any entity this import has not
+   created yet, writes it as `:entityRef{alias=<run id>/<local id>}` with the
+   alias that entity will be created with. Spexd stores it as an ordinary
+   reference once the entity exists and fills it in when it is created, so
+   every document is written once and needs no second pass. An entity already
+   created is referenced as usual, by `:entityRef{reference=…}`. Criteria
+   can't be referenced by alias: reference their requirement, then write
+   `/AC-n` after it as text (`:entityRef{alias=shop-import-1/F03-R02}/AC-3`).
 3. **Link designs to the ACs they fulfil**, so each requirement's acceptance
    criteria are covered by at least one design. The cheapest route is
    `createDesign`'s `acceptanceCriteriaRefs`, which records coverage as the
@@ -544,6 +558,40 @@ with one search. The body carries:
   `requirementRef`, and `createTask` a `parentRef`, which may be a feature, a
   requirement or a design — so a follow-up task goes directly under the entity
   its question concerns.
+- **Key every create with an alias.** Every `createProject`, `createFeature`,
+  `createRequirement`, `createDesign` and `createTask` an import makes takes an
+  `alias` unique to the run: `<run id>/<local id>`, for example
+  `shop-import-1/F03-R02` for the second requirement of the third feature.
+  Choose the run id once, before Phase 1, and give each entity its local id
+  from your plan of the import (`P` for the project, `F03`, `F03-R02`,
+  `F03-R02-D1`, `F03-R02-Q1` for a follow-up), so sub-agents working in
+  parallel never mint the same one. An alias is 1–200 characters from letters,
+  digits and `. _ : / -`, and is unique across the organization.
+  - **A repeat answers what exists.** A create naming an alias already held
+    creates nothing and answers the existing entity with `existing: true`;
+    carry on from its reference as if you had just created it. A requirement's
+    repeat answer carries no `criteria` list: its criteria are numbered
+    `AC-1`…`AC-n` in the order you sent them.
+  - **`differs: true` means the entity was created from different input** —
+    another title, body, parent or criteria than this create sends. Report it
+    in the closing report and leave it: never edit it to match, since a person
+    may have changed it on purpose.
+  - **An alias held by another kind is refused** (`409`): your local ids
+    collided, so fix the plan, not the entity.
+  - **Not inside a proposal.** A create inside a proposal refuses an alias, so
+    an import into a proposal sets none.
+  - **The external route only.** Spexd's own assistant sets no aliases, so an
+    in-product staged run creates without one.
+  - **Aliases are bookkeeping.** They appear nowhere in the app and can't be
+    edited or removed, so never write one into a body as text. State the run id
+    and the local-id plan in the closing report, where resuming needs them.
+- **Resuming a stopped import.** To finish an import that stopped part-way, run
+  it again with the same run id and the same local ids. Every entity already
+  created comes back unchanged with `existing: true`, the rest are created, and
+  any reference written by alias in the first run is filled in as its entity
+  arrives — no clean-up, no second pass. Reuse the earlier plan rather than
+  re-deriving it, so each entity gets the local id it had. The checks for a
+  requirement whose draft holds unpublished criteria still apply.
 - **`getEntity` never returns a body.** It and every other entity response are
   content-free — metadata, `viewUrl` and the ancestor chain only. When you need
   to read back what an entity actually says (checking a sub-agent's work, say),
@@ -579,7 +627,9 @@ with one search. The body carries:
 1. **Survey** all supplied sources (repo + docs + tickets); build a complete map
    of what the system does.
 2. **Discover** the feature set from evidence, grouped by what a user does or
-   sees, not by code layout or maintainer tooling; `createProject`;
+   sees, not by code layout or maintainer tooling; choose the run id (or reuse
+   the stopped run's, to resume) and key every create from here on with an
+   alias; `createProject`;
    `createFeature` for each capability linked into the project, and link each feature to its
    repositories. Capture every `featureRef`.
 3. **Fan out** one sub-agent per feature (concurrently). Each works one
