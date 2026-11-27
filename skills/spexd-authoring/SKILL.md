@@ -222,8 +222,10 @@ Also load *Acceptance criteria and coverage* for how criteria reach a version.
 **What it is.** One testable scenario that proves its requirement, belonging
 to exactly one requirement. A criterion is **structured, not markdown**:
 `createAcceptanceCriterion` takes separate fields, and the app renders them.
-A new requirement's criteria can instead be sent with `createRequirement` as
-`acceptanceCriteria`, a list whose items take the same fields and `because`.
+When you write a new requirement and already know its criteria, send them
+with `createRequirement` as `acceptanceCriteria`, a list whose items take the
+same fields and `because`. Use `createAcceptanceCriterion` to add a criterion
+to an existing requirement.
 
 | Field | Holds |
 |---|---|
@@ -663,7 +665,8 @@ leave to your judgement.
   response's `criteria`. A design can cover them at once, with no publish
   first. The create is all or nothing: one refused criterion refuses the whole
   create, naming its position, and nothing is recorded. At most 50 per create;
-  add more afterwards with `createAcceptanceCriterion`.
+  add more afterwards with `createAcceptanceCriterion`, a draft edit published
+  with the requirement.
 - On an existing requirement, creating, updating or deleting a criterion is
   one call that edits the requirement's draft: no publish, no version, no
   cascade. Read the new `AC-n` from the create response.

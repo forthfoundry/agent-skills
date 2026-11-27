@@ -56,13 +56,14 @@ grounding, and fan-out.
    are not imported as tasks.
    - **Publishing is not a transition.** `publishDocument` + `confirmPublish`
      records a new *version* and leaves the status at `DRAFT`, so this rule
-     never stops you publishing. Every requirement **must** be published once
-     its criteria are written: criteria live in the requirement's draft until
-     it is, every criteria read answers the published set, and a design can
-     only cover a published criterion. An unpublished requirement reads as
-     having no criteria at all. Publish each one **as soon as** its criteria
-     are written, before drafting the next — never in a batch at the end, which
-     is the work a cut-short turn loses first.
+     never stops you publishing. Criteria sent with `createRequirement` as
+     `acceptanceCriteria` are part of its version 1 and need no publish.
+     Criteria added to a requirement afterwards with
+     `createAcceptanceCriterion` live in its draft until it is published:
+     every criteria read answers the published set, and a design can only
+     cover a published criterion. Publish such a requirement **as soon as**
+     those criteria are written, before drafting the next — never in a batch
+     at the end, which is the work a cut-short turn loses first.
 
 ## The shape of an import
 
@@ -165,9 +166,9 @@ for altitude; and the two rules above. A prompt template:
 > capability, in product language ("the user can…", "every X must Y"). Ground
 > each one in what you observe; don't invent capabilities the code doesn't
 > show. Check `listDescendants` on `<featureRef>` first to avoid duplicates. If
-> a requirement already there has criteria in its draft (`readDocument`) but
-> none from `listAcceptanceCriteria`, an earlier run was cut off before
-> publishing it: publish it (`publishDocument`, then `confirmPublish`) before
+> a requirement already there has criteria in its draft (`readDocument`) that
+> `listAcceptanceCriteria` does not return, an earlier run was cut off after
+> adding them: publish it (`publishDocument`, then `confirmPublish`) before
 > drafting anything new.
 >
 > **Step B — One requirement at a time: one create with its criteria.** Take
@@ -195,6 +196,8 @@ for altitude; and the two rules above. A prompt template:
 > criterion refuses its whole requirement, and nothing is recorded — so done
 > one at a time, a refusal or an interruption costs only the requirement in
 > progress, and every requirement already created holds all its criteria.
+> When a create is refused, fix the criterion the refusal names by position
+> and resend the whole create.
 >
 > Where a point the sources leave open stops a reviewer accepting a
 > requirement or criterion as written, raise a follow-up task under that
@@ -273,8 +276,8 @@ falls short.
    at once). Coverage is a pure structural write — it rolls no version and
    moves nothing in the chain. Only a **published** criterion can be covered:
    if `createDesign` or `addDesignCoverage` refuses with a 404 because the
-   acceptance criteria are not found, the requirement was never published.
-   Publish it (`publishDocument` then `confirmPublish`), then retry. (Decomposing designs into tasks is out of scope
+   acceptance criteria are not found, they were added to the requirement
+   after its create and it was not published since. Publish it (`publishDocument` then `confirmPublish`), then retry. (Decomposing designs into tasks is out of scope
    for an import — leave it to `spexd-authoring`/`spexd-implementing` once
    humans have reviewed. The only tasks an import raises are the follow-ups in
    *Follow-up tasks for unresolved ambiguity*, and a design you write here
@@ -381,9 +384,10 @@ and build on it rather than drafting a second.
 
 Closing contract:
 
-- Before ending, confirm `listAcceptanceCriteria` returns a non-empty set for
-  every requirement you drafted. An empty set on a requirement whose draft
-  (`readDocument`) holds criteria means it was never published: publish it.
+- Before ending, confirm `listAcceptanceCriteria` returns every criterion for
+  every requirement you drafted. One whose draft (`readDocument`) holds
+  criteria it does not return had criteria added after its create and was not
+  published since: publish it.
 - End the unit with a summary of what was drafted, and of which sources were skipped and why.
 - Never start the next stage unprompted.
 - Read the workspace before writing, so a re-sent or continued unit creates nothing twice.
@@ -402,9 +406,9 @@ link each design to the criteria it fulfils. Leave a requirement the prompt
 does not name to the unit that names it.
 
 **Publish an unpublished requirement before designing for it.** If a
-requirement the prompt names has criteria in its draft (`readDocument`) but
-none from `listAcceptanceCriteria`, its requirements unit was cut off before
-publishing it. Publish it (`publishDocument` then `confirmPublish`) first, then
+requirement the prompt names has criteria in its draft (`readDocument`) that
+`listAcceptanceCriteria` does not return, its requirements unit added them
+after the create and was cut off before publishing it. Publish it (`publishDocument` then `confirmPublish`) first, then
 design. A `createDesign` 404 naming acceptance criteria that are not found means
 exactly this.
 
@@ -579,16 +583,18 @@ with one search. The body carries:
    `createFeature` for each capability linked into the project, and link each feature to its
    repositories. Capture every `featureRef`.
 3. **Fan out** one sub-agent per feature (concurrently). Each works one
-   requirement at a time: create a grounded **requirement** under its feature,
-   linked to its repositories; write its judgement-based **acceptance
-   criteria**; then publish it so its criteria reach the published set — all
-   before drafting the next.
+   requirement at a time: draft a grounded **requirement** and its
+   judgement-based **acceptance criteria**, create it with them in one
+   `createRequirement` call under its feature, and link it to its repositories
+   — all before drafting the next.
 4. **Reconcile** the sub-agents' reports; place any cross-feature rules; collect
    the architectural-seam notes. Reconcile the follow-ups too: where sub-agents
    reported the same cross-feature question, raise it as **one** task, placed by
    the follow-up rules.
 5. **Design** across the requirements along architectural seams, grounded in the
-   real codebase, first publishing any requirement left unpublished, with at least one design under every requirement; link each
+   real codebase, first publishing any requirement with criteria added after
+   its create and not yet published, with at least one design under every
+   requirement; link each
    design to the ACs it fulfils; confirm every requirement has a design and
    every AC is covered. Raise a follow-up under any design the evidence leaves
    open.
@@ -596,9 +602,9 @@ with one search. The body carries:
    `listDescendants(FEAT-n, { maxDepth: -1 })` per feature — every requirement
    and design beneath it, each carrying its `parent` (acceptance criteria are
    not a chain level, so list them per requirement with `listAcceptanceCriteria`,
-   which also shows each criterion's `fulfilledBy` coverage — an empty list on
-   a requirement whose draft holds criteria means it was never published, so
-   publish it). Confirm every
+   which also shows each criterion's `fulfilledBy` coverage — a criterion in
+   a requirement's draft that the list does not return was added after the
+   create and not published, so publish it). Confirm every
    entity is `DRAFT`, nothing was transitioned, no implementation detail leaked
    above Design, and nothing was invented beyond the AC exception. The only
    `TASK`s beneath any feature are follow-ups — each `DRAFT`, each under the
