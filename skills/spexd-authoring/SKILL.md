@@ -704,8 +704,7 @@ leave to your judgement.
   any final `title`; (3) only then cancel.
 - References are server-generated. Read them from create responses; never
   guess the next number.
-- Every create takes an optional `alias`; it exists for imports
-  (`spexd-importing`), and ordinary authoring doesn't set it.
+- `alias` (on creates outside a proposal) exists for imports; ordinary authoring doesn't set it.
 
 ### Attachments and comments
 
