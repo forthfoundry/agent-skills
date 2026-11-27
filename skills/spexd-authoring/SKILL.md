@@ -155,6 +155,11 @@ any number of projects, or none. File a new feature under the projects the
 user names (`projectRefs` on `createFeature`, or `addFeatureToProject`
 afterwards). Create a project only when asked.
 
+**Title.** The capability in 2–6 words of the user's language
+("Player-to-player trading"), covering every requirement beneath it and
+nothing else. No marketing adjectives, and no "and" joining two capabilities:
+that's two features, or one of them is a requirement.
+
 **Structure.** Problem and value in product language, for a reader deciding
 *whether* to build it, not *how*:
 
@@ -186,6 +191,13 @@ and a single observable outcome you could write a pass/fail test from, it's an
 AC. "The rider can tip after a trip" is a requirement; "*given* a completed
 trip within the tipping window, *when* the rider adds a tip, *then* the tip is
 charged as a separate transaction to the default method" is one of its ACs.
+
+**Title.** The rule itself: one present-tense sentence with a subject and a
+verb (can, cannot, must, is, only…), about 15 words at most, that a product
+manager could agree or disagree with — "Muted players cannot send private
+messages", not "Muted players' private messages". Never a topic, a screen or
+setting name, or a gerund ("Adding a friend by name"). If it needs "and" to
+join two rules, it is two requirements.
 
 **Structure.**
 
@@ -305,6 +317,11 @@ Name the modules and layers involved, and quote existing code where it pins
 the pattern down. Still write the target state in the timeless present: not a
 diff, not a migration path from today, not how much is already built. No
 access to the code? See *Without a shell or the repository*.
+
+**Title.** The mechanism as a noun phrase of about 12 words at most
+("Server-validated offers that reset agreement on change"). No requirement or
+AC references, since the parent link carries those, and don't restate the
+requirement.
 
 **Structure.** Use these headings in this order. Leave out a heading only
 because it doesn't apply, never because nobody thought about it.
@@ -519,6 +536,8 @@ and new implementation code.
   it until none are lost.
 - **No title in the body.** The title is its own field. Start with the content
   — or, for a blocked task, its `**Depends on:**` list.
+- **Each kind has its own title form.** See the title guidance in *Feature*,
+  *Requirement*, *Acceptance Criteria*, *Design* and *Task*.
 - **No status in the body.** No "Status:" line and no "shipped / planned /
   rejected" labels. State lives in the lifecycle status.
 - **Ask open questions; don't park them.** Before any open question goes into
